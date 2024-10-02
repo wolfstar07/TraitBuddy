@@ -207,6 +207,9 @@ local motifs = {
 	[124] = M:New("The Recollection", 145, 3921, 11928, 203182),
 	[125] = M:New("Blind Path Cultist", 146, 3922, 11964, 203214),
 	[126] = M:New("Shardborn", 147, 3923, 12074, 203360),
+	[127] = M:New("West Weald Legion", 148, 3924, 12106, 203473),
+	[128] = M:New("Lucent Sentinel", 149, 3925, 12138, 203492),
+	[129] = M:New("Hircine Bloodhunter", 151, nil, 12275, 203834, LEG, false),
 }
 
 --Chapter to motif book order, matches achievement
