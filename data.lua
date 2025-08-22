@@ -14,8 +14,8 @@ local zones = {
 	greenshade = { id=108 },
 	shadowfen = { id=117 },
 	cyrodiil = { id=181, icon="esoui/art/treeicons/tutorial_idexicon_ava_up.dds" },
-	eyevea = { id=267, icons="esoui/art/icons/servicemappins/servicepin_magesguild.dds" },
-	coldharbour = { id=347 },
+	eyevea = { id=267, icon="/esoui/art/treeicons/antiquities_tabicon_eyevea_up.dds" },
+	coldharbour = { id=347, icon="/esoui/art/treeicons/antiquities_tabicon_coldharbour_up.dds" },
 	auridon = { id=381 },
 	reapersmarch = { id=382 },
 	grahtwood = { id=383 },
@@ -26,24 +26,25 @@ local zones = {
 	hewsbane = { id=816, icon="esoui/art/treeicons/tutorial_idexicon_thievesguild_up.dds" },
 	goldcoast = { id=823, icon="esoui/art/treeicons/tutorial_idexicon_darkbrotherhood_up.dds" },
 	vvardenfell = { id=849, icon="esoui/art/treeicons/tutorial_idexicon_morrowind_up.dds" },
-	craglorn = { id=888, icon="esoui/art/treeicons/tutorial_idexicon_ava_up.dds" },
+	craglorn = { id=888, icon="/esoui/art/treeicons/antiquities_tabicon_craglorn_up.dds" },
 	clockwork = { id=980, icon="esoui/art/treeicons/tutorial_idexicon_cwc_up.dds" },
 	brassfort = { id=981, icon="esoui/art/treeicons/tutorial_idexicon_cwc_up.dds" },
-	summerset = { id=1011, icon="esoui/art/treeicons/tutorial_idexicon_summerset_up.dds.dds" },
-	artaeum = { id=1027, icon="esoui/art/treeicons/tutorial_idexicon_summerset_up.dds.dds" },
+	summerset = { id=1011, icon="/esoui/art/icons/store_psijic_upgrade.dds" },
+	artaeum = { id=1027, icon="/esoui/art/icons/store_psijic_upgrade.dds" },
 	elsweyr_north = { id=1086, icon="esoui/art/treeicons/tutorial_idexicon_elsweyr_up.dds" },
 	elsweyr_south = { id=1133, icon="esoui/art/treeicons/tutorial_idexicon_dragonguard_up.dds" },
 	greymoor = { id=1160, icon="esoui/art/treeicons/tutorial_indexicon_greymoor_up.dds" },
 	markarth = { id=1207, icon="esoui/art/treeicons/tutorial_indexicon_markarth_up.dds" },
 	blackreach_arkthzand_cavern = { id=1208, icon="esoui/art/treeicons/tutorial_indexicon_markarth_up.dds" },
 	blackreach_greymoor_caverns = { id=1161, icon="esoui/art/treeicons/tutorial_indexicon_greymoor_up.dds" },
-	blackwood = { id=1261, icon="esoui/art/treeicons/tutorial_idexicon_blackwood_up.dds" },
+	blackwood = { id=1261, icon="/esoui/art/icons/heraldrycrests_misc_tree_01.dds" },
 	deadlands = { id=1286, icon="esoui/art/treeicons/tutorial_idexicon_deadlands_up.dds" },
-	highisle = { id=1318, icon="esoui/art/treeicons/tutorial_idexicon_blackwood_up.dds" },
+	highisle = { id=1318, icon="/esoui/art/treeicons/store_indexicon_vanitypets_up.dds" },
 	galen_yffelon = { id=1383, icon="esoui/art/treeicons/tutorial_idexicon_firesong_up.dds" },
 	apocrypha = { id=1413, icon="esoui/art/icons/heraldrycrests_daedra_hermaeusmora_01.dds" },
 	telvanni_peninsula = { id=1414, icon="esoui/art/icons/heraldrycrests_daedra_hermaeusmora_01.dds" },
-	west_weald = { id=1443, icon="esoui/art/treeicons/provisioner_indexicon_wine_up.dds" },
+	west_weald = { id=1443, icon="/esoui/art/treeicons/tutorial_indexicon_scribing_up.dds" },
+	solstice = { id=1502, icon="/esoui/art/icons/u46_coin_wormcult.dds" },
 }
 
 local researchableTraits = {
@@ -76,7 +77,7 @@ local researchableTraits = {
 	[ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY] = 139414 --Slaughterstone
 }
 
--- M:New("test name", itemStyleId, achievementId, collectibleId, id, quality, hasChapters) To get the itemStyleId you need the link of an item in that style, to get the collectibleId you need the helm, to get the id you need the motif book
+-- M:New("test name", itemStyleId, achievementId, collectibleId, id, quality, hasChapters) To get the itemStyleId you need the link of an item in that style, to get the collectibleId you need the heavy head, to get the id you need the motif book (or axes motif minus 1)
 local ARC = ITEM_FUNCTIONAL_QUALITY_ARCANE
 local LEG = ITEM_FUNCTIONAL_QUALITY_LEGENDARY
 local M = TB_Data_Motif
@@ -91,10 +92,10 @@ local motifs = {
 	[8] = M:New("Orc", 3, 1030, 1791, 16426, ARC, false),
 	[9] = M:New("Argonian", 6, 1030, 2562, 27246, ARC, false),
 	[10] = M:New("Imperial", 34, 1043, 3187, 54868, LEG, false),
-	[11] = M:New("Ancient Elf", 15, 1043, 2684, 51638, ARC, false),
-	[12] = M:New("Barbaric", 17, 1043, 2399, 51565, ARC, false),
-	[13] = M:New("Primal", 19, 1043, 1614, 51345, ARC, false),
-	[14] = M:New("Daedric", 20, 1043, 2527, 51688, ARC, false),
+	[11] = M:New("Ancient Elf", 15, 1043, 2684, 51638, nil, false),
+	[12] = M:New("Barbaric", 17, 1043, 2399, 51565, nil, false),
+	[13] = M:New("Primal", 19, 1043, 1614, 51345, nil, false),
+	[14] = M:New("Daedric", 20, 1043, 2527, 51688, nil, false),
 	[15] = M:New("Dwemer", 14, 1144, 3008, 57572),
 	[16] = M:New("Glass", 28, 1319, 3556, 64669),
 	[17] = M:New("Xivkyn", 29, 1181, 3429, 57834),
@@ -210,6 +211,11 @@ local motifs = {
 	[127] = M:New("West Weald Legion", 148, 3924, 12106, 203473),
 	[128] = M:New("Lucent Sentinel", 149, 3925, 12138, 203492),
 	[129] = M:New("Hircine Bloodhunter", 151, nil, 12275, 203834, LEG, false),
+	[130] = M:New("Exile's Revenge", 153, 4159, 12879, 211054),
+	[131] = M:New("Militant Monk", 154, 4160, 12911, 211071),
+--	[132] = M:New("Stirk Fellowship", 155, 4240, 13119, 212084),
+--	[133] = M:New("Coldharbour Dominator", 156, 4241, 13151, 212101),
+	[134] = M:New("Tide-Born", 157, 4242, 13183, 212118),
 }
 
 --Chapter to motif book order, matches achievement
@@ -358,6 +364,10 @@ local sets = {
 	[78] = {id=205773 , traits=5, locations={[1]={zone=L:New(zones.west_weald)}}, test="Highland Sentinel"},
 	[79] = {id=205393 , traits=3, locations={[1]={zone=L:New(zones.west_weald)}}, test="Tharriker’s Strike"},
 	[80] = {id=206153 , traits=7, locations={[1]={zone=L:New(zones.west_weald)}}, test="Threads of War"},
+
+--	[82] = {id=215099 , traits= , locations={[1]={zone=L:New(zones.solstice)}}, test="Shared Burden"},
+	[81] = {id=215479 , traits=5, locations={[1]={zone=L:New(zones.solstice)}}, test="Tide-Born Wildstalker"},
+--	[83] = {id=215859 , traits= , locations={[1]={zone=L:New(zones.solstice)}}, test="Fellowship's Fortitude"},
 }
 
 TB_Data = ZO_Object:Subclass()
