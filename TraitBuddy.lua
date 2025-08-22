@@ -310,7 +310,7 @@ function TB_Object:New(...)
 end
 function TB_Object:Initialize()
 	self.ADDON_NAME = "TraitBuddy"
-	self.ADDON_VERSION = "9.1"
+	self.ADDON_VERSION = "9.6"
 	self.settings = {}
 	self.player_activated = false
 	self.characterId = 0
@@ -386,6 +386,7 @@ function TB_Object:StructureAndFix()
 	if not self.settings.characters[self.characterId] then
 		self.settings.characters[self.characterId] = {
 			research = {},
+			markForResearch = {},
 			motifs = {},
 			show = {
 				bs = true,
@@ -408,6 +409,7 @@ function TB_Object:StructureAndFix()
 
 	local craftingSkillTypes = self:GetCraftingSkillTypes()
 	for id,c in pairs(self.settings.characters) do
+		c.markForResearch = c.markForResearch or {}
 		if type(c.show) == "boolean" then --show changed v4.0
 			local oldShow = c.show
 			c.show = {
@@ -423,12 +425,15 @@ function TB_Object:StructureAndFix()
 		for _,craftingSkillType in pairs(craftingSkillTypes) do
 			c.research[craftingSkillType] = c.research[craftingSkillType] or {}
 			c.research[craftingSkillType].MaxSimultaneousResearch = c.research[craftingSkillType].MaxSimultaneousResearch or 1
+			c.markForResearch[craftingSkillType] = c.markForResearch[craftingSkillType] or {}
 			for researchLineIndex = 1, GetNumSmithingResearchLines(craftingSkillType) do
 				c.research[craftingSkillType][researchLineIndex] = c.research[craftingSkillType][researchLineIndex] or {}
+				c.markForResearch[craftingSkillType][researchLineIndex] = c.markForResearch[craftingSkillType][researchLineIndex] or {}
 				local _, _, numTraits, _ = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
 				c.research[craftingSkillType][researchLineIndex].Name = nil
 				for traitIndex = 1, numTraits do
 					c.research[craftingSkillType][researchLineIndex][traitIndex] = c.research[craftingSkillType][researchLineIndex][traitIndex] or false
+					c.markForResearch[craftingSkillType][researchLineIndex][traitIndex] = (not c.research[craftingSkillType][researchLineIndex][traitIndex] and c.markForResearch[craftingSkillType][researchLineIndex][traitIndex]) or false
 				end
 			end
 		end
@@ -673,6 +678,11 @@ function TB_Object:DefaultSettings()
 				r = 1,
 				g = 0.2,
 				b = 0.2,
+			},
+			mark = {
+				r = 0.2,
+				g = 0.2,
+				b = 1,
 			},
 		},
 		inventory = {
@@ -989,7 +999,10 @@ function TB_Object:BuildTooltip(control, know, researching, canResearch, GamePad
 			control:AddLine(ZO_GenerateCommaSeparatedListWithoutAnd(canResearch), GAMEPAD_STYLE_2, control:GetStyle("bodySection"))
 		else
 			control:AddLine(GetString(TB_COULD_RESEARCH), "TBFontItemCategory", tooltip.colours.canResearch_title.r,tooltip.colours.canResearch_title.g,tooltip.colours.canResearch_title.b, LEFT, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
-			control:AddLine(ZO_GenerateCommaSeparatedListWithoutAnd(canResearch), "TBFontGame16", r,g,b, LEFT, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
+			local rr = TraitBuddy.settings.tooltip.colours.canResearch_title.r * 255
+local gg = TraitBuddy.settings.tooltip.colours.canResearch_title.g * 255
+local bb = TraitBuddy.settings.tooltip.colours.canResearch_title.b * 255
+control:AddLine(sf("|c%02X%02X%02X%d|r: %s", rr, gg, bb, #canResearch, ZO_GenerateCommaSeparatedListWithoutAnd(canResearch)), "TBFontGame16", r,g,b, LEFT, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
 		end
 	end
 end
