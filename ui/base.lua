@@ -2,6 +2,13 @@ local sf = string.format
 local zo_str = zo_strformat
 local zo_cachedstr = ZO_CachedStrFormat
 
+CONTEXT_CHECK_LEFT = MOUSE_BUTTON_INDEX_LEFT
+CONTEXT_CHECK_RIGHT = MOUSE_BUTTON_INDEX_RIGHT
+if IsInGamepadPreferredMode() then
+  CONTEXT_CHECK_LEFT = UI_SHORTCUT_PRIMARY
+  CONTEXT_CHECK_RIGHT = UI_SHORTCUT_SECONDARY
+end
+
 --General ui functions and anything related to the traits
 local function GetApparelData(craftingSkillType)
 	local bar = nil
@@ -61,12 +68,15 @@ local function OnSetsSelect(data)
 end
 
 local function GetNumResearching(c, craftingSkillType)
+  if TB_Helpers.activeResearchCount then
+    return TB_Helpers.activeResearchCount[c.id]
+  end
 	--How many traits is the selected character researching
 	local numResearching = 0
 	for researchLineIndex = 1, GetNumSmithingResearchLines(craftingSkillType) do
 		local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
 		for traitIndex = 1, numTraits do
-			if TraitBuddy:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
+			if TB_Helpers:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
 				numResearching = numResearching + 1
 			end
 		end
@@ -141,7 +151,7 @@ function TB_UI:TraitMaterial_OnMouseEnter(control)
 end
 
 function TB_UI:TraitMaterial_OnMouseUp(control, button, upInside)
-	if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
+	if button == CONTEXT_CHECK_RIGHT and upInside then
 		local link = GetSmithingTraitItemLink(control:GetParent().traitItemIndex, LINK_STYLE_BRACKETS)
 		ZO_LinkHandler_InsertLink(link)
 	end
@@ -195,7 +205,7 @@ TraitBuddy.ui:Refresh(self)
 end
 
 function TB_UI:Trait_OnMouseUp(control, button, upInside)
-	if (button == MOUSE_BUTTON_INDEX_RIGHT and IsChatSystemAvailableForCurrentPlatform() and upInside) then
+	if (button == CONTEXT_CHECK_RIGHT and IsChatSystemAvailableForCurrentPlatform() and upInside) then
 		local id = 0
 		if control.craftingSkillType == CRAFTING_TYPE_JEWELRYCRAFTING then
 			id = TraitBuddy.data:GetJewelryTraitLinkID(control.researchLineIndex, control.traitIndex)
@@ -214,10 +224,12 @@ function TB_UI:Trait_OnMouseUp(control, button, upInside)
 	local c = self.selector:GetSelectedCharacter()
 
 		if not c.research[control.craftingSkillType][control.researchLineIndex][control.traitIndex] then
-			if c.markForResearch[control.craftingSkillType][control.researchLineIndex][control.traitIndex] then
-				AddMenuItem(GetString(TB_UNMARK_TRAIT), function() self:UnmarkForResearch(c, control.craftingSkillType, control.researchLineIndex, control.traitIndex) end)
-			else
-				AddMenuItem(GetString(TB_MARK_TRAIT), function() self:MarkForResearch(c, control.craftingSkillType, control.researchLineIndex, control.traitIndex) end)
+		  if not IsConsoleUI() then
+        if c.markForResearch[control.craftingSkillType][control.researchLineIndex][control.traitIndex] then
+          AddMenuItem(GetString(TB_UNMARK_TRAIT), function() self:UnmarkForResearch(c, control.craftingSkillType, control.researchLineIndex, control.traitIndex) end)
+        else
+          AddMenuItem(GetString(TB_MARK_TRAIT), function() self:MarkForResearch(c, control.craftingSkillType, control.researchLineIndex, control.traitIndex) end)
+        end
 			end
 --			d(c.markForResearch[control.craftingSkillType][control.researchLineIndex][control.traitIndex])
 			self:UpdateUI(CRAFTING_TYPE_BLACKSMITHING)
@@ -243,9 +255,9 @@ end
 
 function TB_UI:ColumnHeading_OnMouseUp(control, button, upInside)
 	if upInside then
-		if button == MOUSE_BUTTON_INDEX_LEFT then
+		if button == CONTEXT_CHECK_LEFT then
 			self.mail:Compose(control.craftingSkillType, control.researchLineIndex, true)
-		elseif button == MOUSE_BUTTON_INDEX_RIGHT then
+		elseif button == CONTEXT_CHECK_RIGHT then
 			self.mail:Compose(control.craftingSkillType, control.researchLineIndex, false)
 		end
 	end
@@ -278,7 +290,7 @@ end
 function TB_UI:Refresh(control)
 	if self.created then
 		TraitBuddy:UpdateResearch()
-		TraitBuddy:UpdateResearching()
+		TB_Helpers:UpdateResearching()
 		TraitBuddy:UpdateMotifs()
 		self.research:UpdateUI()
 		for key,craftingSkillType in pairs(TraitBuddy:GetCraftingSkillTypes()) do
@@ -733,7 +745,7 @@ function TB_UI:UpdateTotals(c, craftingSkillType)
 		if c then
 			local _, _, numTraits, _ = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
 			for traitIndex = 1, numTraits do
-				if TraitBuddy:IsTraitKnown(c, craftingSkillType, researchLineIndex, traitIndex) then
+				if TB_Helpers:IsTraitKnown(c, craftingSkillType, researchLineIndex, traitIndex) then
 					numKnown = numKnown + 1
 				end
 			end
@@ -802,7 +814,7 @@ function TB_UI:UpdateUI(craftingSkillType)
 			end
 			trait.no:SetColor(TraitBuddy.settings.colours.not_known.r, TraitBuddy.settings.colours.not_known.g, TraitBuddy.settings.colours.not_known.b)
 
-			if c.markForResearch[craftingSkillType][researchLineIndex][traitIndex] then
+			if TB_Helpers:CheckMarkForResearch(c, craftingSkillType, researchLineIndex, traitIndex) then
 				trait.yes:SetColor(TraitBuddy.settings.colours.mark.r, TraitBuddy.settings.colours.mark.g, TraitBuddy.settings.colours.mark.b)
 				trait.no:SetColor(TraitBuddy.settings.colours.mark.r, TraitBuddy.settings.colours.mark.g, TraitBuddy.settings.colours.mark.b)
 			end
