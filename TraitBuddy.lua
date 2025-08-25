@@ -85,7 +85,7 @@ local function DisplayItemLinkTooltip(control, itemLink, GamePadMode)
 			--Additional tooltip info for items
 			local c = TraitBuddy:GetCharacter(TraitBuddy.characterId)
 			if showTooltip.youKnowSection then
-				if TraitBuddy:IsTraitKnown(c, craftingSkillType, researchLineIndex, traitIndex) then
+				if self.helpers:IsTraitKnown(c, craftingSkillType, researchLineIndex, traitIndex, self.settings.traitTable) then
 					if GamePadMode then
 						GAMEPAD_STYLE_1.fontColor = ZO_ColorDef:New(TraitBuddy.colours.you_know.r, TraitBuddy.colours.you_know.g, TraitBuddy.colours.you_know.b)
 						control:AddLine(GetString(TB_YOU_KNOW), GAMEPAD_STYLE_1, control:GetStyle("bodySection"))
@@ -335,6 +335,7 @@ function TB_Object:OnPlayerActivated()
 
 	TraitBuddy.data = TB_Data:New()
 	TraitBuddy.ui = TB_UI:New(TB)
+  TraitBuddy.helpers = TB_HelpersObject:New(TB)
 	
 	EVENT_MANAGER:RegisterForEvent(self.ADDON_NAME, EVENT_NON_COMBAT_BONUS_CHANGED, function(_, ...) self:OnNonCombatBonusChanged(...) end)
 
@@ -343,7 +344,7 @@ function TB_Object:OnPlayerActivated()
 	self:SortCharacters()
 	self:CalcMaxNumTraits()
 	self:UpdateResearch()
-	TB_Helpers:UpdateResearching()
+	TraitBuddy.helpers:UpdateResearching(self.settings.characters, self.settings.traitTable)
 	if not IsConsoleUI() then
 	  self:UpdateMotifs()
 	end
@@ -409,27 +410,29 @@ function TB_Object:StructureAndFix()
 	end
 
 	self:TidyCharacters()
-  TB_Helpers:InitializeChars()
+  TraitBuddy.helpers:InitializeChars(self.settings.characters)
 end
 function TB_Object:UpdateMotifs()
 	local c = self:GetCharacter(self.characterId)
-	local numChapters = self.data:GetNumChapters()
-	for itemStyleIndex = 1, GetNumValidItemStyles() do
-		local itemStyleId = GetValidItemStyleId(itemStyleIndex)
-		if itemStyleId > 0 then
-			local motif = self.data:GetMotifByItemStyleId(itemStyleId)
-			if motif then
-				local order = motif:Order()
-				if motif:HasChapters() then
-					for chapter = 1, numChapters do
-						c.motifs[order][chapter] = motif:IsLoreBookChapterKnown(chapter)
-					end
-				else
-					c.motifs[order] = IsSmithingStyleKnown(itemStyleId, 1)
-				end
-			end
-		end
-	end
+  local numChapters = self.data:GetNumChapters()
+  for itemStyleIndex = 1, GetNumValidItemStyles() do
+    local itemStyleId = GetValidItemStyleId(itemStyleIndex)
+    if itemStyleId > 0 then
+      local motif = self.data:GetMotifByItemStyleId(itemStyleId)
+      if motif then
+        local order = motif:Order()
+        if motif:HasChapters() then
+          for chapter = 1, numChapters do
+            if c.motifs[order] and next(c.motifs[order]) then
+              c.motifs[order][chapter] = motif:IsLoreBookChapterKnown(chapter)
+            end
+          end
+        else
+          c.motifs[order] = IsSmithingStyleKnown(itemStyleId, 1)
+        end
+      end
+    end
+  end
 end
 function TB_Object:GetResearchShowName(craftingSkillType)
 	if craftingSkillType==CRAFTING_TYPE_BLACKSMITHING then
@@ -692,7 +695,7 @@ function TB_Object:UpdateResearch()
 				for traitIndex = 1, numTraits do
 					local _, _, known = GetSmithingResearchLineTraitInfo(craftingSkillType, researchLineIndex, traitIndex)
 					local durationSecs, timeRemainingSecs = GetSmithingResearchLineTraitTimes(craftingSkillType, researchLineIndex, traitIndex)	--can be nil
-					local wasBeingResearched = TB_Helpers:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex)
+					local wasBeingResearched = TraitBuddy.helpers:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex)
 					local currentlyResearching = false
 					local whenDoneTimeStamp = 0
 					if durationSecs then
@@ -702,19 +705,19 @@ function TB_Object:UpdateResearch()
 					if wasBeingResearched then
 						--Was researching at some point
 						if known then
-							modified_c = TB_Helpers:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, true)
+							modified_c = TraitBuddy.helpers:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, true, self.settings.traitTable)
 						else
 							if currentlyResearching then
-								modified_c = TB_Helpers:SetCharacterResearchActive(c, craftingSkillType, researchLineIndex, traitIndex, { duration = durationSecs, done = whenDoneTimeStamp })
+								modified_c = TraitBuddy.helpers:SetCharacterResearchActive(c, craftingSkillType, researchLineIndex, traitIndex, { duration = durationSecs, done = whenDoneTimeStamp })
 							else
 								--correct some mistake
-								modified_c = TB_Helpers:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, false)
+								modified_c = TraitBuddy.helpers:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, false, self.settings.traitTable)
 							end
 						end
 					elseif currentlyResearching then
-						modified_c = TB_Helpers:SetCharacterResearchActive(c, craftingSkillType, researchLineIndex, traitIndex, { duration = durationSecs, done = whenDoneTimeStamp })
+						modified_c = TraitBuddy.helpers:SetCharacterResearchActive(c, craftingSkillType, researchLineIndex, traitIndex, { duration = durationSecs, done = whenDoneTimeStamp })
 					else
-						modified_c = TB_Helpers:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, known)
+						modified_c = TraitBuddy.helpers:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, known, self.settings.traitTable)
 					end
 				end
 			end
@@ -826,9 +829,9 @@ function TB_Object:GetWhoKnows(craftingSkillType, researchLineIndex, traitIndex,
 					show = GetShow_CraftingSkillType(c, craftingSkillType)
 				end
 				if show then
-					if TB_Helpers:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
+					if self.helpers:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
 						researching[#researching+1] = c.name
-					elseif TB_Helpers:IsTraitKnown(c, craftingSkillType, researchLineIndex, traitIndex) then
+					elseif self.helpers:IsTraitKnown(c, craftingSkillType, researchLineIndex, traitIndex, self.settings.traitTable) then
 						know[#know+1] = c.name
 					else
 						dontKnow[#dontKnow+1] = c.name
@@ -900,12 +903,22 @@ function TB_Object:OnResearchStarted(craftingSkillType, researchLineIndex, trait
 	self:GetCharacter(self.characterId).research[craftingSkillType][researchLineIndex][traitIndex] = { duration = durationSecs, done = GetTimeStamp() + timeRemainingSecs }
 	self.ui.research:UpdateUI()
 	self.ui:UpdateUI(craftingSkillType)
-	self:UpdateResearching()
+	local updateUI = self:UpdateResearching(self:GetCharacters())
+	if TraitBuddy.ui.updatelater:IsUpdating() then
+		updateUI = false
+	end
+	if updateUI then
+		if TraitBuddy.ui:IsCreated() then
+			TraitBuddy.ui.research:UpdateUI()
+		else
+			TraitBuddy.ui.updatelater:UpdateResearchUI()
+		end
+	end
 end
 function TB_Object:OnResearchCanceled(craftingSkillType, researchLineIndex, traitIndex)
 	local c = self:GetCharacter(self.characterId)
-	c.research[craftingSkillType][researchLineIndex][traitIndex] = nil
-	c.research[craftingSkillType][researchLineIndex][traitIndex] = false
+	modified_c = TraitBuddy.helpers:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, false, self.settings.traitTable)
+	self:SetCharacter(c.id, modified_c)
 end
 function TB_Object:OnResearchCompleted(craftingSkillType, researchLineIndex, traitIndex)
 	if not self.ui:IsCreated() then
@@ -915,7 +928,7 @@ function TB_Object:OnResearchCompleted(craftingSkillType, researchLineIndex, tra
 	self:ResearchCompleted(craftingSkillType, researchLineIndex, traitIndex)
 	self.ui.research:UpdateUI()
 	self.ui:UpdateUI(craftingSkillType)
-	self:UpdateResearching()
+	self.helpers:UpdateResearching(self:GetCharacters())
 end
 function TB_Object:OnResearchTimesUpdated()
 	--Research scroll, OnResearchCompleted fires off if the research finishes
@@ -929,7 +942,8 @@ function TB_Object:OnResearchTimesUpdated()
 						local durationSecs, timeRemainingSecs = GetSmithingResearchLineTraitTimes(craftingSkillType, researchLineIndex, traitIndex)	--can be nil
 						if durationSecs then
 							local whenDoneTimeStamp = GetTimeStamp() + timeRemainingSecs
-							c.research[craftingSkillType][researchLineIndex][traitIndex] = { duration = durationSecs, done = whenDoneTimeStamp }
+							modified_c = self.helpers:SetCharacterResearchActive(c, craftingSkillType, researchLineIndex, traitIndex, { duration = durationSecs, done = whenDoneTimeStamp })
+							self:SetCharacter(c.id, modified_c)
 						end
 					end
 				end
@@ -941,14 +955,12 @@ end
 function TB_Object:ResearchCompleted(craftingSkillType, researchLineIndex, traitIndex)
 	--Update the data
 	local c = self:GetCharacter(self.characterId)
-	if self:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
-		c.research[craftingSkillType][researchLineIndex][traitIndex] = nil
+	local modified_c
+	if self.helpers:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
+		modified_c = self .helpers:StopCharActiveResearch(c, craftingSkillType, researchLineIndex, traitIndex)
 	end
-	c.research[craftingSkillType][researchLineIndex][traitIndex] = true
-	local key = sf("c%dr%dt%d", craftingSkillType, researchLineIndex, traitIndex)
-	if c.completed and c.completed[key] then
-		c.completed[key].done = true
-	end
+	modified_c = self.helpers:SetCharacterResearchComplete(modified_c or c, craftingSkillType, researchLineIndex, traitIndex, true, traitTable)
+	self:SetCharacter(c.id, modified_c)
 	--Message
 	if self.settings.messageComplete then
 		if not doneMessages[key] then
@@ -984,7 +996,7 @@ function TB_Object:OnNonCombatBonusChanged(nonCombatBonusType)
 				end
 				local c = self:GetCharacter(self.characterId)
 				self:UpdateResearch()
-				TB_Helpers:UpdateResearching()
+				TraitBuddy.helpers:UpdateResearching(self:GetCharacters())
 				self.ui:UpdateCurrentMaxSimultaneousResearch(craftingSkillType)
 				self.ui.research:UpdateUI()
 				self.ui:UpdateNumResearching(c)
@@ -1013,7 +1025,7 @@ function TB_Object:OnLoaded(addonName)
 			profile = "NA"
 		end
 	end
-	
+
 	self.characterId = GetCurrentCharacterId()
 	self.settings = ZO_SavedVars:NewAccountWide("TraitBuddySettings", 1, nil, self:DefaultSettings(), profile)
 

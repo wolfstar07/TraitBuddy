@@ -1,34 +1,44 @@
-TB_Helpers = ZO_Object:Subclass()
+d("Test from PC")
 
-function TB_Helpers:New(...)
+TB_HelpersObject = ZO_Object:Subclass()
+
+function TB_HelpersObject:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
     return object
 end
 
-function TB_Helpers:Initialize(parent)
+function TB_HelpersObject:Initialize(parent)
 	self.parent = parent
-	self:Create()
 end
 
-function TB_Helpers:CheckMarkForResearch(c, craftingSkillType, researchLineIndex, traitIndex)
+function TB_HelpersObject:CheckMarkForResearch(c, craftingSkillType, researchLineIndex, traitIndex)
   return c.markForResearch[craftingSkillType][researchLineIndex][traitIndex]
 end
 
-function TB_Helpers:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, flag)
+function TB_HelpersObject:SetCharacterResearchComplete(c, craftingSkillType, researchLineIndex, traitIndex, flag, traitTable)
 	c.research[craftingSkillType][researchLineIndex][traitIndex] = nil
   c.research[craftingSkillType][researchLineIndex][traitIndex] = flag
   return c
 end
 
-function TB_Helpers:SetCharacterResearchActive(c, craftingSkillType, researchLineIndex, traitIndex, research)
+function TB_HelpersObject:SetCharacterResearchActive(c, craftingSkillType, researchLineIndex, traitIndex, research)
 	c.research[craftingSkillType][researchLineIndex][traitIndex] = { duration = durationSecs, done = whenDoneTimeStamp }
   return c
 end
 
-function TB_Helpers:InitializeChars()
+function TB_HelpersObject:StopCharActiveResearch(c, craftingSkillType, researchLineIndex, traitIndex)
+  c.research[craftingSkillType][researchLineIndex][traitIndex] = nil
+  local key = sf("c%dr%dt%d", craftingSkillType, researchLineIndex, traitIndex)
+	if c.completed and c.completed[key] then
+		c.completed[key].done = true
+	end
+	return c
+end
+
+function TB_HelpersObject:InitializeChars(characters)
 	local craftingSkillTypes = TraitBuddy:GetCraftingSkillTypes()
-  for id,c in pairs(TraitBuddy.settings.characters) do
+  for id,c in pairs(characters) do
 		c.markForResearch = c.markForResearch or {}
 		if type(c.show) == "boolean" then --show changed v4.0
 			local oldShow = c.show
@@ -92,7 +102,7 @@ function TB_Helpers:InitializeChars()
 	end
 end
 
-function TB_Helpers:IsTraitBeingResearched(character, craftingSkillType, researchLineIndex, traitIndex)
+function TB_HelpersObject:IsTraitBeingResearched(character, craftingSkillType, researchLineIndex, traitIndex)
 	if character and craftingSkillType and researchLineIndex and traitIndex then
 		if craftingSkillType>0 and researchLineIndex>0 and traitIndex>0 then
 			return (type(character.research[craftingSkillType][researchLineIndex][traitIndex])=="table")
@@ -101,7 +111,7 @@ function TB_Helpers:IsTraitBeingResearched(character, craftingSkillType, researc
 	return false
 end
 
-function TB_Helpers:IsTraitKnown(character, craftingSkillType, researchLineIndex, traitIndex)
+function TB_HelpersObject:IsTraitKnown(character, craftingSkillType, researchLineIndex, traitIndex)
 	if character and craftingSkillType and researchLineIndex and traitIndex then
 		if craftingSkillType>0 and researchLineIndex>0 and traitIndex>0 then
 			if self:IsTraitBeingResearched(character, craftingSkillType, researchLineIndex, traitIndex)==false then
@@ -112,12 +122,12 @@ function TB_Helpers:IsTraitKnown(character, craftingSkillType, researchLineIndex
 	return false
 end
 
-function TB_Helpers:UpdateResearching()
+function TB_HelpersObject:UpdateResearching(characters, traitTable)
 	--Update any traits which were researching that have now finished
 	local updateUI = false
 	local nextTimeRemainingSecs = nil
 	local craftingSkillTypes = TraitBuddy:GetCraftingSkillTypes()
-	for id,c in pairs(TraitBuddy:GetCharacters()) do
+	for id,c in pairs(characters) do
 		for _,craftingSkillType in pairs(craftingSkillTypes) do
 			for researchLineIndex = 1, GetNumSmithingResearchLines(craftingSkillType) do
 				local _, _, numTraits, _ = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
@@ -150,20 +160,10 @@ function TB_Helpers:UpdateResearching()
 		end
 	end
 
-	if TraitBuddy.ui.updatelater:IsUpdating() then
-		updateUI = false
-	end
-	if updateUI then
-		if TraitBuddy.ui:IsCreated() then
-			TraitBuddy.ui.research:UpdateUI()
-		else
-			TraitBuddy.ui.updatelater:UpdateResearchUI()
-		end
-	end
-
 	--When to update research again
 	if nextTimeRemainingSecs then
-		local ms = nextTimeRemainingSecs*1000
-		zo_callLater(function() self:UpdateResearching() end, ms)
+		local ms = nextTimeRemainingSecs*3000
+		zo_callLater(function(characters) self:UpdateResearching(characters) end, ms)
 	end
+	return updateUI
 end

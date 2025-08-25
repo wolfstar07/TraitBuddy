@@ -10,12 +10,12 @@
 ## OptionalDependsOn: LibLazyCrafting
 
 lang/$(language).lua
-
-platform/PC/Helpers.lua
-platform/Console/Helpers.lua
+PC/base.xml
+Console/base.xml
+PC/Helpers.lua
+Console/Helpers.lua
 
 ui/updatelater.lua
-ui/base.xml
 ui/base.lua
 ui/settings.xml
 ui/settings.lua
