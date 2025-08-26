@@ -2,7 +2,7 @@
 	<Font name="TBFontItemCategory" font="$(BOLD_FONT)|$(KB_16)|soft-shadow-thin"/>
 	<Font name="TBFontGame16" font="$(MEDIUM_FONT)|$(KB_16)|soft-shadow-thin"/>
 	<Controls>
-		<TopLevelControl name="CraftMenuBar" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
+		<Control name="CraftMenuBar" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
 		<Control name="TB_Trait" excludeFromResizeToFitExtents="true" virtual="true">
 			<Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP"/>
 			<Dimensions x="40" y="34"/>
@@ -173,7 +173,7 @@
 					</Controls>
 				</Control>
 
-				<Control name="$(parent)Area" hidden="true" excludeFromResizeToFitExtents="true">
+				<Control name="$(parent)Area" hidden="false" excludeFromResizeToFitExtents="true">
 					<!--Area where all the other screens get placed-->
 					<Anchor point="TOPLEFT" relativeTo="$(parent)Heading" relativePoint="BOTTOMLEFT"/>
 					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" offsetY="-80"/>
