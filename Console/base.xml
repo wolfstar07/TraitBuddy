@@ -2,7 +2,7 @@
 	<Font name="TBFontItemCategory" font="$(BOLD_FONT)|$(KB_16)|soft-shadow-thin"/>
 	<Font name="TBFontGame16" font="$(MEDIUM_FONT)|$(KB_16)|soft-shadow-thin"/>
 	<Controls>
-		<TopLevelControl name="CraftMenuBar" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" >
+		<Control name="CraftMenuBar" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" >
 			<Controls>
 				<Control name="$(parent)Mask" excludeFromResizeToFitExtents="true" override="true">
 					<Controls>
@@ -13,7 +13,7 @@
 					</Controls>
 				</Control>
 			</Controls>
-		</TopLevelControl>
+		</Control>
 		<Control name="TB_Trait" excludeFromResizeToFitExtents="true" virtual="true">
 			<Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP"/>
 			<Dimensions x="40" y="34"/>
