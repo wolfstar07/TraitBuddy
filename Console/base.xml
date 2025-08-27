@@ -2,7 +2,18 @@
 	<Font name="TBFontItemCategory" font="$(BOLD_FONT)|$(KB_16)|soft-shadow-thin"/>
 	<Font name="TBFontGame16" font="$(MEDIUM_FONT)|$(KB_16)|soft-shadow-thin"/>
 	<Controls>
-		<Control name="CraftMenuBar" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
+		<TopLevelControl name="CraftMenuBar" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" >
+			<Controls>
+				<Control name="$(parent)Mask" excludeFromResizeToFitExtents="true" override="true">
+					<Controls>
+						<Control name="$(parent)Container" excludeFromResizeToFitExtents="true" override="true">
+							<Anchor point="TOPLEFT" relativeTo="$(parent)Heading" relativePoint="BOTTOMLEFT" offsetY="20"/>
+							<Anchor point="TOPRIGHT" relativeTo="$(parent)Heading" relativePoint="BOTTOMRIGHT" offsetY="20"/>
+						</Control>
+					</Controls>
+				</Control>
+			</Controls>
+		</TopLevelControl>
 		<Control name="TB_Trait" excludeFromResizeToFitExtents="true" virtual="true">
 			<Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP"/>
 			<Dimensions x="40" y="34"/>
@@ -206,14 +217,11 @@
 									<Anchor point="RIGHT" relativePoint="RIGHT" offsetX="-20" offsetY="5"/>
 									<Dimensions x="200"/>
 								</Control>
-								<Backdrop name="$(parent)Search" tier="HIGH" inherits="ZO_SingleLineEditBackdrop_Keyboard">
+								<Backdrop name="$(parent)Search" tier="HIGH" inherits="ZO_SingleLineEditBackdrop_Gamepad">
 									<Anchor point="RIGHT" relativePoint="LEFT" relativeTo="$(parent)Filter" offsetX="-10" />
 									<Dimensions x="150" />
 									<Controls>
-										<EditBox name="$(parent)SearchBox" inherits="ZO_DefaultEditForBackdrop ZO_EditDefaultText" >
-											<OnInitialized>
-											ZO_EditDefaultText_Initialize(self, GetString(SI_CUSTOMER_SERVICE_REQUEST_CATEGORY_SEARCH), "ZoFontWinH2", "808080")
-											</OnInitialized>
+										<EditBox name="$(parent)SearchBox" inherits="ZO_DefaultEditForBackdrop" defaultText="SI_CUSTOMER_SERVICE_REQUEST_CATEGORY_SEARCH">
 											<OnTextChanged>TraitBuddy.ui.motifs:OnSearchTextChanged(self)</OnTextChanged>
 										</EditBox>
 									</Controls>

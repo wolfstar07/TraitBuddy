@@ -186,3 +186,32 @@ function TB_HelpersObject:UpdateResearching(characters, traitTable)
 	end
   return updateUI
 end
+
+function TB_HelpersObject:ReturnInventoryObject()
+  return {
+		bag = {
+			list = ZO_GamepadInventoryTopLevel,
+			showKey = "bag",
+		},
+		bank = {
+			list = ZO_GamepadBankingTopLevel,
+			showKey = "bank",
+		},
+		guild = {
+			list = ZO_GuildBankTopLevel_Gamepad,
+			showKey = "guild",
+		},
+		deconstruction = {
+			list = ZO_GamepadSmithingTopLevelMaskDeconstructionInventory,
+			showKey = "crafting",
+		},
+		improvement = {
+			list = ZO_GamepadSmithingTopLevelMaskImprovementInventory,
+			showKey = "crafting",
+		},
+		assistant = {
+			list = ZO_UniversalDeconstructionTopLevel_GamepadMaskPanelInventory,
+			showKey = "crafting",
+		},
+	}
+end

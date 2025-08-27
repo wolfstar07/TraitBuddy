@@ -1,5 +1,3 @@
-d("Test from PC")
-
 TB_HelpersObject = ZO_Object:Subclass()
 
 function TB_HelpersObject:New(...)
@@ -166,4 +164,33 @@ function TB_HelpersObject:UpdateResearching(characters, traitTable)
 		zo_callLater(function(characters) self:UpdateResearching(characters) end, ms)
 	end
 	return updateUI
+end
+
+function TB_HelpersObject:ReturnInventoryObject()
+  return {
+		bag = {
+			list = ZO_PlayerInventoryList,
+			showKey = "bag",
+		},
+		bank = {
+			list = ZO_PlayerBankBackpack,
+			showKey = "bank",
+		},
+		guild = {
+			list = ZO_GuildBankBackpack,
+			showKey = "guild",
+		},
+		deconstruction = {
+			list = ZO_SmithingTopLevelDeconstructionPanelInventoryBackpack,
+			showKey = "crafting",
+		},
+		improvement = {
+			list = ZO_SmithingTopLevelImprovementPanelInventoryBackpack,
+			showKey = "crafting",
+		},
+		assistant = {
+			list = ZO_UniversalDeconstructionTopLevel_KeyboardPanelInventoryBackpack,
+			showKey = "crafting",
+		},
+	}
 end

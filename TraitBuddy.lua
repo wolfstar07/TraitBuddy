@@ -273,20 +273,23 @@ local function HookQuestRewardTooltip()
 end
 local function HookCraftingTooltip()
 	if TraitBuddy.settings.tooltip.show.crafting then
-		--Non gamepad hook
-		local ResultTooltip = ZO_SmithingTopLevelCreationPanelResultTooltip
-		local PendingSmithingItemTooltip = ResultTooltip.SetPendingSmithingItem
-		ResultTooltip.SetPendingSmithingItem = function(control, patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex, ...)
-			PendingSmithingItemTooltip(control, patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex, ...)
-			DisplayItemLinkTooltip(control, GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex))
-		end
-		--Gamepad hook
-		local GP_ResultTooltip = ZO_GamepadSmithingTopLevelCreationResultTooltip.tip
-		local GP_LayoutPendingSmithingItem = GP_ResultTooltip.LayoutPendingSmithingItem
-		GP_ResultTooltip.LayoutPendingSmithingItem = function(control, patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex, ...)
-			GP_LayoutPendingSmithingItem(control, patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex, ...)
-			DisplayItemLinkTooltip(control, GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex), true)
-		end
+	  if not IsInGamepadPreferredMode() then
+      --Non gamepad hook
+      local ResultTooltip = ZO_SmithingTopLevelCreationPanelResultTooltip
+      local PendingSmithingItemTooltip = ResultTooltip.SetPendingSmithingItem
+      ResultTooltip.SetPendingSmithingItem = function(control, patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex, ...)
+        PendingSmithingItemTooltip(control, patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex, ...)
+        DisplayItemLinkTooltip(control, GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex))
+      end
+    else
+      --Gamepad hook
+      local GP_ResultTooltip = ZO_GamepadSmithingTopLevelCreationResultTooltip.tip
+      local GP_LayoutPendingSmithingItem = GP_ResultTooltip.LayoutPendingSmithingItem
+      GP_ResultTooltip.LayoutPendingSmithingItem = function(control, patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex, ...)
+        GP_LayoutPendingSmithingItem(control, patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex, ...)
+        DisplayItemLinkTooltip(control, GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, itemStyleId, traitIndex), true)
+      end
+    end
 	end
 end
 local function HookWornItemsTooltip()
@@ -333,9 +336,9 @@ function TB_Object:OnPlayerActivated()
 	self.player_activated = true
 	EVENT_MANAGER:UnregisterForEvent(self.ADDON_NAME, EVENT_PLAYER_ACTIVATED)
 
-	TraitBuddy.data = TB_Data:New()
-	TraitBuddy.ui = TB_UI:New(TB)
   TraitBuddy.helpers = TB_HelpersObject:New(TB)
+	TraitBuddy.data = TB_Data:New()
+	TraitBuddy.ui = TB_UI:New(TB, TraitBuddy.helpers)
 	
 	EVENT_MANAGER:RegisterForEvent(self.ADDON_NAME, EVENT_NON_COMBAT_BONUS_CHANGED, function(_, ...) self:OnNonCombatBonusChanged(...) end)
 

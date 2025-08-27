@@ -36,28 +36,40 @@ end
 function TB_Launcher:Initialize(launcherType)
 	self.launcherType = launcherType
 	self.launcher = {}
+
+	skills = ZO_Skills
+	if IsInGamepadPreferredMode() then
+	  skills = ZO_GamepadSkillsTopLevel
+	end
 	--create/parent/anchors accordingly
 	if launcherType == "skills" then
-		self.launcher.normal = CreateControlFromVirtual("$(parent)TBLaunch", ZO_Skills, "TB_Launch")
+		self.launcher.normal = CreateControlFromVirtual("$(parent)TBLaunch", skills, "TB_Launch")
 		if IsHarvensInstalled() then
-			self.launcher.normal:SetAnchor(BOTTOMRIGHT, ZO_Skills, TOPRIGHT, -320, 0)
+			self.launcher.normal:SetAnchor(BOTTOMRIGHT, skills, TOPRIGHT, -320, 0)
 		else
-		self.launcher.normal:SetAnchor(BOTTOMRIGHT, ZO_Skills, TOPRIGHT, -320, 0)
+		  self.launcher.normal:SetAnchor(BOTTOMRIGHT, skills, TOPRIGHT, -320, 0)
 		end
 		
 		--self.launcher.gamepad = CreateControlFromVirtual("$(parent)TBLaunchGamepad", ZO_Skills, "TB_Launch_Gamepad")
 		--self.launcher.gamepad:SetAnchor(BOTTOMRIGHT, ZO_Skills, TOPRIGHT, -100, -60)
 	end
 	if launcherType == "smithing" then
-		self.launcher.normal = CreateControlFromVirtual("$(parent)TBLaunch", ZO_SmithingTopLevel, "TB_Launch")
-		self.launcher.normal:SetAnchor(BOTTOMRIGHT, ZO_SmithingTopLevelCreationPanel, TOPRIGHT, -20, -60)
-		
-		self.launcher.gamepad = CreateControlFromVirtual("$(parent)TBLaunch", ZO_GamepadSmithingTopLevel, "TB_Launch_Gamepad")
-		self.launcher.gamepad:SetAnchor(BOTTOMRIGHT, ZO_GamepadSmithingTopLevel, TOPRIGHT, 0, 0)
+	  if not IsInGamepadPreferredMode() then
+      self.launcher.normal = CreateControlFromVirtual("$(parent)TBLaunch", ZO_SmithingTopLevel, "TB_Launch")
+      self.launcher.normal:SetAnchor(BOTTOMRIGHT, ZO_SmithingTopLevelCreationPanel, TOPRIGHT, -20, -60)
+		else
+      self.launcher.gamepad = CreateControlFromVirtual("$(parent)TBLaunch", ZO_GamepadSmithingTopLevel, "TB_Launch_Gamepad")
+      self.launcher.gamepad:SetAnchor(BOTTOMRIGHT, ZO_GamepadSmithingTopLevel, TOPRIGHT, 0, 0)
+		end
 	end
 	if launcherType == "guildstore" then
-		self.launcher.normal = CreateControlFromVirtual("$(parent)TBLaunch", ZO_TradingHouse, "TB_Launch")
-		self.launcher.normal:SetAnchor(BOTTOMRIGHT, ZO_TradingHouse, TOPRIGHT, -20, -60)
+	  if not IsInGamepadPreferredMode() then
+      self.launcher.normal = CreateControlFromVirtual("$(parent)TBLaunch", ZO_TradingHouse, "TB_Launch")
+      self.launcher.normal:SetAnchor(BOTTOMRIGHT, ZO_TradingHouse, TOPRIGHT, -20, -60)
+    else
+      self.launcher.gamepad = CreateControlFromVirtual("$(parent)TBLaunch", ZO_TradingHouse_Gamepad, "TB_Launch")
+      self.launcher.gamepad:SetAnchor(BOTTOMRIGHT, ZO_TradingHouse_Gamepad, TOPRIGHT, -20, -60)
+    end
 	end
 	--self:SetGamepadText()
 end
@@ -67,7 +79,10 @@ function TB_Launcher:SetState(state)
 		self.launcher.normal:SetState(state)
 	end
 	if self.launcher.gamepad then
-		self.launcher.gamepad:GetNamedChild("Button"):SetState(state)
+		local button = self.launcher.gamepad:GetNamedChild("Button")
+		if button then
+		  button:SetState(state)
+    end
 	end
 end
 
