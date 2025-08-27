@@ -1,6 +1,13 @@
 local sf = string.format
 local zo_str = zo_strformat
 
+CONTEXT_CHECK_LEFT = MOUSE_BUTTON_INDEX_LEFT
+CONTEXT_CHECK_RIGHT = MOUSE_BUTTON_INDEX_RIGHT
+if IsInGamepadPreferredMode() then
+  CONTEXT_CHECK_LEFT = UI_SHORTCUT_PRIMARY
+  CONTEXT_CHECK_RIGHT = UI_SHORTCUT_SECONDARY
+end
+
 local function MotifHeaderSetup(node, control, data, open)
 	local motif = TraitBuddy.data:GetMotif(data.order)
 

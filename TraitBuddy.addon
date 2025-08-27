@@ -7,11 +7,15 @@
 ## APIVersion: 101048 101047
 ## PCDependsOn: LibAddonMenu-2.0>=40
 ## ConsoleDependsOn: LibHarvensAddonSettings>=20003 LibConsoleDialogs
-## OptionalDependsOn: LibLazyCrafting 
+## OptionalDependsOn: LibLazyCrafting
+
 lang/$(language).lua
+PC/base.xml
+Console/base.xml
+PC/Helpers.lua
+Console/Helpers.lua
 
 ui/updatelater.lua
-ui/base.xml
 ui/base.lua
 ui/settings.xml
 ui/settings.lua

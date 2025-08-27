@@ -6,33 +6,9 @@ function TB_Inventory:New(...)
     return object
 end
 
-function TB_Inventory:Initialize()
-	self.inventories = {
-		bag = {
-			list = ZO_PlayerInventoryList,
-			showKey = "bag",
-		},
-		bank = {
-			list = ZO_PlayerBankBackpack,
-			showKey = "bank",
-		},
-		guild = {
-			list = ZO_GuildBankBackpack,
-			showKey = "guild",
-		},
-		deconstruction = {
-			list = ZO_SmithingTopLevelDeconstructionPanelInventoryBackpack,
-			showKey = "crafting",
-		},
-		improvement = {
-			list = ZO_SmithingTopLevelImprovementPanelInventoryBackpack,
-			showKey = "crafting",
-		},
-		assistant = {
-			list = ZO_UniversalDeconstructionTopLevel_KeyboardPanelInventoryBackpack,
-			showKey = "crafting",
-		},
-	}
+function TB_Inventory:Initialize(helpers)
+	--self.inventories = helpers:ReturnInventoryObject()
+	self.inventories = PLAYER_INVENTORY.inventories
 	self:HookInventory()
 end
 
@@ -84,22 +60,24 @@ function TB_Inventory:GetInventoryControl(parent)
 end
 
 function TB_Inventory:HookInventory()
-	for k,inv in pairs(self.inventories) do
-		local show = TraitBuddy.settings.inventory.show[inv.showKey]
-		SecurePostHook(ZO_ScrollList_GetDataTypeTable(inv.list, 1), "setupCallback", function(control, dataEntryData)
-			local indicator = self:GetInventoryControl(control)
+  local function hookCallback(control, dataEntryData)
+    local indicator = self:GetInventoryControl(control)
 
-			-- Only create the control if really need to
-			if show then
-				if self:IsWeapon(dataEntryData) or self:IsArmour(dataEntryData) or self:IsMotif(dataEntryData) then
-					if indicator == nil then
-						indicator = self:CreateInventoryControl(control)
-					end
-					local toHide, r, g, b = self:GetDetails(dataEntryData)
-					self:UpdateInventoryControl(indicator, toHide, r, g, b)
-				end
-			end
-		end)
+    -- Only create the control if really need to
+    if show then
+      if self:IsWeapon(dataEntryData) or self:IsArmour(dataEntryData) or self:IsMotif(dataEntryData) then
+        if indicator == nil then
+          indicator = self:CreateInventoryControl(control)
+        end
+        local toHide, r, g, b = self:GetDetails(dataEntryData)
+        self:UpdateInventoryControl(indicator, toHide, r, g, b)
+      end
+    end
+  end
+
+	for k,inv in pairs(self.inventories) do
+	  local show = TraitBuddy.settings.inventory.show[tostring(k)]
+		SecurePostHook(inv, "setupCallback", hookCallback)
 	end
 end
 

@@ -60,7 +60,7 @@ local function GetNumTraitsKnown(character, craftingSkillType)
 	for researchLineIndex = 1, GetNumSmithingResearchLines(craftingSkillType) do
 		local _, _, numTraits, _ = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
 		for traitIndex = 1, numTraits do
-			if TraitBuddy:IsTraitKnown(character, craftingSkillType, researchLineIndex, traitIndex) then
+			if TraitBuddy.helpers:IsTraitKnown(character, craftingSkillType, researchLineIndex, traitIndex, TraitBuddy.settings.traitTable) then
 				numKnown = numKnown + 1
 			end
 		end
@@ -155,7 +155,7 @@ function TB_Research:UpdateUI()
 					for researchLineIndex = 1, GetNumSmithingResearchLines(craftingSkillType) do
 						local _, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
 						for traitIndex = 1, numTraits do
-							if TraitBuddy:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
+							if TraitBuddy.helpers:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
 								numResearching = numResearching + 1
 								local researching = craft:GetNamedChild("Research"):GetNamedChild(numResearching)
 								if not researching then

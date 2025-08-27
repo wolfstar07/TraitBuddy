@@ -2,6 +2,13 @@ local sf = string.format
 local zo_str = zo_strformat
 local zo_cachedstr = ZO_CachedStrFormat
 
+CONTEXT_CHECK_LEFT = UI_SHORTCUT_PRIMARY
+CONTEXT_CHECK_RIGHT = UI_SHORTCUT_SECONDARY
+if not CONTEXT_CHECK_LEFT or not CONTEXT_CHECK_RIGHT then
+  CONTEXT_CHECK_LEFT = MOUSE_BUTTON_INDEX_LEFT
+  CONTEXT_CHECK_RIGHT = MOUSE_BUTTON_INDEX_RIGHT
+end
+
 --General ui functions and anything related to the traits
 local function GetApparelData(craftingSkillType)
 	local bar = nil
@@ -31,7 +38,14 @@ local function GetApparelData(craftingSkillType)
 end
 
 local function OnApparelSelect(data)
-	local craftingSkillType = ZO_MenuBar_GetSelectedDescriptor(TraitBuddy.ui.menubar)
+	local craftingSkillType = CRAFTING_TYPE_BLACKSMITHING
+	if not IsInGamepadPreferredMode() then
+	  craftingSkillType = ZO_MenuBar_GetSelectedDescriptor(TraitBuddy.ui.menubar)
+  else
+    if data then
+      craftingSkillType = data.craftingSkillType
+    end
+	end
 	if data==nil then
 		data = GetApparelData(craftingSkillType)
 	end
@@ -61,12 +75,15 @@ local function OnSetsSelect(data)
 end
 
 local function GetNumResearching(c, craftingSkillType)
+  if next(TraitBuddy.helpers.activeResearchCount) then
+    return TraitBuddy.helpers.activeResearchCount[c.id]
+  end
 	--How many traits is the selected character researching
 	local numResearching = 0
 	for researchLineIndex = 1, GetNumSmithingResearchLines(craftingSkillType) do
 		local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
 		for traitIndex = 1, numTraits do
-			if TraitBuddy:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
+			if TraitBuddy.helpers:IsTraitBeingResearched(c, craftingSkillType, researchLineIndex, traitIndex) then
 				numResearching = numResearching + 1
 			end
 		end
@@ -82,14 +99,16 @@ function TB_UI:New(...)
     return object
 end
 
-function TB_UI:Initialize(parent)
+function TB_UI:Initialize(parent, helpers)
 	self.parent = parent
 	self.created = false
 	self.heading = self.parent:GetNamedChild("Heading")
 	self.updatelater = TB_UpdateLater:New()
 	self.selector = TB_CharacterSelector:New(self.parent:GetNamedChild("Alts"))
 	self.research = TB_Research:New(self.parent:GetNamedChild("Research"))
-	self.motifs = TB_Motifs:New(self.parent:GetNamedChild("Motifs"))
+	if not IsInGamepadPreferredMode() then
+	  self.motifs = TB_Motifs:New(self.parent:GetNamedChild("Motifs"))
+	end
 	self.settings = TB_Settings:New()
 	self.parent:GetNamedChild("Title"):GetNamedChild("H1"):SetText(TraitBuddy.ADDON_NAME)
 	self.launchers = {
@@ -98,7 +117,7 @@ function TB_UI:Initialize(parent)
 		guildstore = TB_Launcher:New("guildstore")
 	}
 	self.mail = TB_Mail:New()
-	self.inventory = TB_Inventory:New()
+	self.inventory = TB_Inventory:New(helpers)
 	self.inventoryInsight = TB_InventoryInsight:New()
 	self.sets = TB_Sets:New(self.parent:GetNamedChild("Sets"))
 	-- self.crafting = TB_Crafting:New()
@@ -141,7 +160,7 @@ function TB_UI:TraitMaterial_OnMouseEnter(control)
 end
 
 function TB_UI:TraitMaterial_OnMouseUp(control, button, upInside)
-	if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
+	if button == CONTEXT_CHECK_RIGHT and upInside then
 		local link = GetSmithingTraitItemLink(control:GetParent().traitItemIndex, LINK_STYLE_BRACKETS)
 		ZO_LinkHandler_InsertLink(link)
 	end
@@ -195,7 +214,7 @@ TraitBuddy.ui:Refresh(self)
 end
 
 function TB_UI:Trait_OnMouseUp(control, button, upInside)
-	if (button == MOUSE_BUTTON_INDEX_RIGHT and IsChatSystemAvailableForCurrentPlatform() and upInside) then
+	if (button == CONTEXT_CHECK_RIGHT and IsChatSystemAvailableForCurrentPlatform() and upInside) then
 		local id = 0
 		if control.craftingSkillType == CRAFTING_TYPE_JEWELRYCRAFTING then
 			id = TraitBuddy.data:GetJewelryTraitLinkID(control.researchLineIndex, control.traitIndex)
@@ -214,10 +233,12 @@ function TB_UI:Trait_OnMouseUp(control, button, upInside)
 	local c = self.selector:GetSelectedCharacter()
 
 		if not c.research[control.craftingSkillType][control.researchLineIndex][control.traitIndex] then
-			if c.markForResearch[control.craftingSkillType][control.researchLineIndex][control.traitIndex] then
-				AddMenuItem(GetString(TB_UNMARK_TRAIT), function() self:UnmarkForResearch(c, control.craftingSkillType, control.researchLineIndex, control.traitIndex) end)
-			else
-				AddMenuItem(GetString(TB_MARK_TRAIT), function() self:MarkForResearch(c, control.craftingSkillType, control.researchLineIndex, control.traitIndex) end)
+		  if not IsConsoleUI() then
+        if c.markForResearch[control.craftingSkillType][control.researchLineIndex][control.traitIndex] then
+          AddMenuItem(GetString(TB_UNMARK_TRAIT), function() self:UnmarkForResearch(c, control.craftingSkillType, control.researchLineIndex, control.traitIndex) end)
+        else
+          AddMenuItem(GetString(TB_MARK_TRAIT), function() self:MarkForResearch(c, control.craftingSkillType, control.researchLineIndex, control.traitIndex) end)
+        end
 			end
 --			d(c.markForResearch[control.craftingSkillType][control.researchLineIndex][control.traitIndex])
 			self:UpdateUI(CRAFTING_TYPE_BLACKSMITHING)
@@ -243,9 +264,9 @@ end
 
 function TB_UI:ColumnHeading_OnMouseUp(control, button, upInside)
 	if upInside then
-		if button == MOUSE_BUTTON_INDEX_LEFT then
+		if button == CONTEXT_CHECK_LEFT then
 			self.mail:Compose(control.craftingSkillType, control.researchLineIndex, true)
-		elseif button == MOUSE_BUTTON_INDEX_RIGHT then
+		elseif button == CONTEXT_CHECK_RIGHT then
 			self.mail:Compose(control.craftingSkillType, control.researchLineIndex, false)
 		end
 	end
@@ -255,6 +276,7 @@ function TB_UI:Toggle()
 	SCENE_MANAGER:ToggleTopLevel(self.parent)
 	if not self.selector:IsCurrentCharacterSelected() then --Always select the current character when re-opening
 		self.selector:TrySelectCurrentCharacter()
+    self.menubar:EnableCurrentList()
 	end
 end
 
@@ -278,7 +300,7 @@ end
 function TB_UI:Refresh(control)
 	if self.created then
 		TraitBuddy:UpdateResearch()
-		TraitBuddy:UpdateResearching()
+		TraitBuddy.helpers:UpdateResearching()
 		TraitBuddy:UpdateMotifs()
 		self.research:UpdateUI()
 		for key,craftingSkillType in pairs(TraitBuddy:GetCraftingSkillTypes()) do
@@ -311,7 +333,9 @@ function TB_UI:SelectCraft(text, descriptor)
 	local crafting = self.parent:GetNamedChild("Crafting")
 	crafting:SetHidden(false)
 	self.selector:Show()
-	self.motifs:Hide()
+	if not IsInGamepadPreferredMode() then
+	  self.motifs:Hide()
+	end
 	self.research:Hide()
 	self.sets:Hide()
 	self.heading:GetNamedChild("Prof"):SetText(text)
@@ -522,18 +546,80 @@ function TB_UI:CreateTraits()
 	end
 end
 
+function TB_UI:CreateIcon(control, data, offsetY)
+  if not offsetY then
+    offsetY = 0
+  end
+  local icon
+  if not GetControl(data.text) then
+	  icon = WINDOW_MANAGER:CreateControl(data.text, self.heading, CT_BUTTON)
+    icon:SetDimensions(64, 64)
+    icon:SetAnchor(BOTTOM, self.heading, BOTTOM, data.sideFloat, offsetY)
+    icon:SetNormalTexture(data.iconsNormal[1])
+    icon:SetHandler("OnClicked", data.callback)
+    icon:SetText(data.label)
+    icon:SetHidden(false)
+    return icon
+  end
+  return GetControl(data.label)
+end
+
+TB_Gamepad = ZO_GamepadVerticalParametricScrollList:Subclass()
+
+TB_GamepadScreen = ZO_Gamepad_ParametricList_Screen:Subclass()
+
+function TB_GamepadScreen:New(control, parent)
+  self.parent = parent
+  return ZO_Gamepad_ParametricList_Screen.New(self, control)
+end
+
+function TB_GamepadScreen:Initialize(control)
+  ZO_Gamepad_ParametricList_Screen.Initialize(self, control)
+end
+
+function TB_GamepadScreen:EnableCurrentList()
+  ZO_Gamepad_ParametricList_Screen:EnableCurrentList()
+end
+
+function TB_GamepadScreen:PerformUpdate()
+end
+
 function TB_UI:CreateMenus()
 	--Create menu bar and buttons for crafting professions
-	self.menubar = CreateControlFromVirtual("$(parent)CraftMenuBar", self.heading, "ZO_MenuBarTemplate")
-	self.menubar:SetAnchor(RIGHT, self.heading, RIGHT, -20, 0)
+	local controlType
+	local list
+
+	if IsInGamepadPreferredMode() then
+	  if not self.menubar then
+	    local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)CraftMenuBarList", self.heading, "TB_CraftMenuBar")
+	    self.menubar = TB_GamepadScreen:New(subcontrol)
+	    list = self.menubar:AddList("TB_HorizontalIconList")
+	    list:AddDataTemplate(
+          "TB_GamepadIconEntryTemplate",
+          function(control, data)
+              self:CreateIcon(control, data, sideFloat, offsetY)
+          end,
+          ZO_GamepadMenuEntryTemplateParametricListFunction
+      )
+
+    end
+
+  else
+    self.menubar = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)CraftMenuBar", self.heading, "ZO_MenuBarTemplate")
+	  self.menubar.control:SetAnchor(RIGHT, self.heading, RIGHT, -20, 0)
+	end
+
 	local data = {
 		buttonPadding = 15,
 		normalSize = 64,
 		downSize = 74
 	}
-	ZO_MenuBar_SetData(self.menubar, data)
+	if not IsInGamepadPreferredMode() then
+	  ZO_MenuBar_SetData(self.menubar, data)
+	end
 	data = {
 		descriptor = CRAFTING_TYPE_BLACKSMITHING,
+		craftingSkillType = CRAFTING_TYPE_BLACKSMITHING,
 		normal = "esoui/art/inventory/inventory_tabicon_craftbag_blacksmithing_up.dds",
 		pressed = "esoui/art/inventory/inventory_tabicon_craftbag_blacksmithing_down.dds",
 		disabled = "esoui/art/inventory/inventory_tabicon_craftbag_blacksmithing_up.dds",
@@ -541,9 +627,20 @@ function TB_UI:CreateMenus()
 		callback = OnCraftSelect,
 		label = zo_cachedstr(SI_ABILITY_NAME, ZO_GetCraftingSkillName(CRAFTING_TYPE_BLACKSMITHING))
 	}
-	ZO_MenuBar_AddButton(self.menubar, data)
+	if IsInGamepadPreferredMode() then
+    local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = -180
+    entryData.focusable = true
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+    --CreateIcon(self.heading, data, -180)
+	else
+	  ZO_MenuBar_AddButton(self.menubar, data)
+	end
+
 	data = {
 		descriptor = CRAFTING_TYPE_CLOTHIER,
+		craftingSkillType = CRAFTING_TYPE_CLOTHIER,
 		normal = "esoui/art/inventory/inventory_tabicon_craftbag_clothing_up.dds",
 		pressed = "esoui/art/inventory/inventory_tabicon_craftbag_clothing_down.dds",
 		disabled = "esoui/art/inventory/inventory_tabicon_craftbag_clothing_up.dds",
@@ -551,9 +648,18 @@ function TB_UI:CreateMenus()
 		callback = OnCraftSelect,
 		label = zo_cachedstr(SI_ABILITY_NAME, ZO_GetCraftingSkillName(CRAFTING_TYPE_CLOTHIER))
 	}
-	ZO_MenuBar_AddButton(self.menubar, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = -120
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+	  --CreateIcon(self.heading, data, -110)
+	else
+	  ZO_MenuBar_AddButton(self.menubar, data)
+	end
 	data = {
 		descriptor = CRAFTING_TYPE_WOODWORKING,
+		craftingSkillType = CRAFTING_TYPE_WOODWORKING,
 		normal = "esoui/art/inventory/inventory_tabicon_craftbag_woodworking_up.dds",
 		pressed = "esoui/art/inventory/inventory_tabicon_craftbag_woodworking_down.dds",
 		disabled = "esoui/art/inventory/inventory_tabicon_craftbag_woodworking_up.dds",
@@ -561,9 +667,18 @@ function TB_UI:CreateMenus()
 		callback = OnCraftSelect,
 		label = zo_cachedstr(SI_ABILITY_NAME, ZO_GetCraftingSkillName(CRAFTING_TYPE_WOODWORKING))
 	}
-	ZO_MenuBar_AddButton(self.menubar, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = -60
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+	  --CreateIcon(self.heading, data, -60)
+	else
+	  ZO_MenuBar_AddButton(self.menubar, data)
+	end
 	data = {
 		descriptor = CRAFTING_TYPE_JEWELRYCRAFTING,
+		craftingSkillType = CRAFTING_TYPE_JEWELRYCRAFTING,
 		normal = "esoui/art/inventory/inventory_tabicon_craftbag_jewelrycrafting_up.dds",
 		pressed = "esoui/art/inventory/inventory_tabicon_craftbag_jewelrycrafting_down.dds",
 		disabled = "esoui/art/inventory/inventory_tabicon_craftbag_jewelrycrafting_up.dds",
@@ -571,7 +686,15 @@ function TB_UI:CreateMenus()
 		callback = OnCraftSelect,
 		label = zo_cachedstr(SI_ABILITY_NAME, ZO_GetCraftingSkillName(CRAFTING_TYPE_JEWELRYCRAFTING))
 	}
-	ZO_MenuBar_AddButton(self.menubar, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = 10
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+	  --CreateIcon(self.heading, data, 10)
+	else
+	  ZO_MenuBar_AddButton(self.menubar, data)
+	end
 	data = {
 		descriptor = "motifs",
 		normal = "esoui/art/mainmenu/menubar_journal_up.dds",
@@ -581,7 +704,15 @@ function TB_UI:CreateMenus()
 		callback = OnMotifSelect,
 		label = GetString("SI_ITEMTYPE", ITEMTYPE_RACIAL_STYLE_MOTIF)
 	}
-	ZO_MenuBar_AddButton(self.menubar, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = 80
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+	  --CreateIcon(self.heading, data, 80)
+	else
+	  ZO_MenuBar_AddButton(self.menubar, data)
+	end
 	data = {
 		descriptor = "sets",
 		normal = "esoui/art/collections/collections_tabicon_itemsets_up.dds",
@@ -591,7 +722,15 @@ function TB_UI:CreateMenus()
 		callback = OnSetsSelect,
 		label = GetString(TB_SETS)
 	}
-	ZO_MenuBar_AddButton(self.menubar, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = 150
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+	  --CreateIcon(self.heading, data, 150)
+	else
+	  ZO_MenuBar_AddButton(self.menubar, data)
+	end
 	data = {
 		descriptor = "research",
 		normal = "esoui/art/crafting/smithing_tabicon_research_up.dds",
@@ -601,19 +740,40 @@ function TB_UI:CreateMenus()
 		callback = OnResearchSelect,
 		label = GetString(SI_SMITHING_TAB_RESEARCH)
 	}
-	ZO_MenuBar_AddButton(self.menubar, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = 220
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+    list:Commit()
+	  --CreateIcon(self.heading, data, 220)
+	else
+	  ZO_MenuBar_AddButton(self.menubar, data)
+	end
 	
 	--Create menu bar and buttons for blacksmith weapons and armour
-	local bsApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel1, "ZO_MenuBarTemplate")
-	bsApparel:SetAnchor(RIGHT, TB_Apparel1, RIGHT, 0, 0)
+	local bsApparel
+	local bsApparelList
+	if IsInGamepadPreferredMode() then
+	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)ApparelBarList1", TB_Apparel1, "TB_CraftMenuBar")
+    bsApparel = TB_Gamepad:New(subcontrol)
+	else
+	  bsApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel1, "ZO_MenuBarTemplate")
+	  bsApparel:SetAnchor(RIGHT, TB_Apparel1, RIGHT, 0, 0)
+	end
+
 	data = {
 		buttonPadding = 15,
 		normalSize = 54,
 		downSize = 64
 	}
-	ZO_MenuBar_SetData(bsApparel, data)
+	if not IsInGamepadPreferredMode() then
+	  ZO_MenuBar_SetData(bsApparel, data)
+	end
+
 	data = {
 		descriptor = 1,
+		craftingSkillType = CRAFTING_TYPE_BLACKSMITHING,
 		normal = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_up.dds",
 		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_down.dds",
 		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_disabled.dds",
@@ -621,9 +781,16 @@ function TB_UI:CreateMenus()
 		callback = OnApparelSelect,
 		label = GetString(SI_TRADINGHOUSECATEGORYHEADER1)
 	}
-	ZO_MenuBar_AddButton(bsApparel, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
+    bsApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+	  --CreateIcon(TB_Apparel1, data, -40, 20)
+	else
+	  ZO_MenuBar_AddButton(bsApparel, data)
+	end
 	data = {
 		descriptor = 2,
+		craftingSkillType = CRAFTING_TYPE_BLACKSMITHING,
 		normal = "EsoUI/Art/Inventory/inventory_tabIcon_armor_up.dds",
 		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_armor_down.dds",
 		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_armor_disabled.dds",
@@ -631,19 +798,38 @@ function TB_UI:CreateMenus()
 		callback = OnApparelSelect,
 		label = GetString(SI_ARMORTYPE_TRADINGHOUSECATEGORY3)
 	}
-	ZO_MenuBar_AddButton(bsApparel, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
+    bsApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+    bsApparel:Commit()
+	  --CreateIcon(TB_Apparel1, data, 30, 20)
+	else
+	  ZO_MenuBar_AddButton(bsApparel, data)
+	end
 	
 	--Create menu bar and buttons for clothing armours
-	local clApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel2, "ZO_MenuBarTemplate")
-	clApparel:SetAnchor(RIGHT, TB_Apparel2, RIGHT, 0, 0)
+	local clApparel
+	local clApparelList
+	if IsInGamepadPreferredMode() then
+	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)ApparelBarList2", TB_Apparel2, "TB_CraftMenuBar")
+    clApparel = TB_Gamepad:New(subcontrol)
+	else
+	  clApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel2, "ZO_MenuBarTemplate")
+	  clApparel:SetAnchor(RIGHT, TB_Apparel2, RIGHT, 0, 0)
+	end
+
 	data = {
 		buttonPadding = 15,
 		normalSize = 54,
 		downSize = 64
 	}
-	ZO_MenuBar_SetData(clApparel, data)
+	if not IsInGamepadPreferredMode() then
+	  ZO_MenuBar_SetData(clApparel, data)
+	end
+
 	data = {
 		descriptor = 1,
+		craftingSkillType = CRAFTING_TYPE_CLOTHIER,
 		normal = "EsoUI/Art/Inventory/inventory_tabIcon_armorLight_up.dds",
 		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_armorLight_down.dds",
 		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_armorLight_up.dds",
@@ -651,9 +837,16 @@ function TB_UI:CreateMenus()
 		callback = OnApparelSelect,
 		label = GetString(SI_EQUIPMENTFILTERTYPE1)
 	}
-	ZO_MenuBar_AddButton(clApparel, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
+    clApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+	  --CreateIcon(TB_Apparel2, data, -40, 20)
+	else
+	  ZO_MenuBar_AddButton(clApparel, data)
+	end
 	data = {
 		descriptor = 2,
+		craftingSkillType = CRAFTING_TYPE_CLOTHIER,
 		normal = "EsoUI/Art/Inventory/inventory_tabIcon_armorMedium_up.dds",
 		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_armorMedium_down.dds",
 		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_armorMedium_up.dds",
@@ -661,19 +854,38 @@ function TB_UI:CreateMenus()
 		callback = OnApparelSelect,
 		label = GetString(SI_EQUIPMENTFILTERTYPE2)
 	}
-	ZO_MenuBar_AddButton(clApparel, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
+    clApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+    clApparel:Commit()
+	  --CreateIcon(TB_Apparel2, data, 30, 20)
+	else
+	  ZO_MenuBar_AddButton(clApparel, data)
+	end
 	
 	--Create menu bar and buttons for woodworking weapons and shields
-	local wwApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel6, "ZO_MenuBarTemplate")
-	wwApparel:SetAnchor(RIGHT, TB_Apparel6, RIGHT, 0, 0)
+	local wwApparel
+	local wwApparelList
+	if IsInGamepadPreferredMode() then
+	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)ApparelBar6List", TB_Apparel6, "TB_CraftMenuBar")
+    wwApparel = TB_Gamepad:New(subcontrol)
+	else
+	  wwApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel6, "ZO_MenuBarTemplate")
+	  wwApparel:SetAnchor(RIGHT, TB_Apparel6, RIGHT, 0, 0)
+	end
+
 	data = {
 		buttonPadding = 15,
 		normalSize = 54,
 		downSize = 64
 	}
-	ZO_MenuBar_SetData(wwApparel, data)
+	if not IsInGamepadPreferredMode() then
+	  ZO_MenuBar_SetData(wwApparel, data)
+	end
+
 	data = {
 		descriptor = 1,
+		craftingSkillType = CRAFTING_TYPE_WOODWORKING,
 		normal = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_up.dds",
 		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_down.dds",
 		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_disabled.dds",
@@ -681,9 +893,16 @@ function TB_UI:CreateMenus()
 		callback = OnApparelSelect,
 		label = GetString(SI_TRADINGHOUSECATEGORYHEADER1)
 	}
-	ZO_MenuBar_AddButton(wwApparel, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
+    wwApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+	  --CreateIcon(TB_Apparel6, data, -40, 20)
+	else
+	  ZO_MenuBar_AddButton(wwApparel, data)
+	end
 	data = {
 		descriptor = 2,
+		craftingSkillType = CRAFTING_TYPE_WOODWORKING,
 		normal = "EsoUI/Art/Inventory/inventory_tabIcon_armor_up.dds",
 		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_armor_down.dds",
 		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_armor_disabled.dds",
@@ -691,23 +910,36 @@ function TB_UI:CreateMenus()
 		callback = OnApparelSelect,
 		label = GetString(SI_TRADING_HOUSE_BROWSE_ARMOR_TYPE_SHIELD)
 	}
-	ZO_MenuBar_AddButton(wwApparel, data)
+	if IsInGamepadPreferredMode() then
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
+    wwApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+    wwApparel:Commit()
+	  --CreateIcon(TB_Apparel6, data, 30, 20)
+	else
+	  ZO_MenuBar_AddButton(wwApparel, data)
+	end
 end
 
 function TB_UI:Create()
 	self:CreateTraits()
 	self:CreateMenus()
-	self.motifs:SelectFirstFilter()
+	if not IsInGamepadPreferredMode() then
+	  self.motifs:SelectFirstFilter()
+  end
 	self.selector:Build(TraitBuddy.characterId)
 	self.selector:Show()
 	--ZO_MenuBar_SelectDescriptor(TB_Apparel6ApparelBar, 1, true, false)
 	--ZO_MenuBar_SelectDescriptor(TB_Apparel2ApparelBar, 1, true, false)
 	--ZO_MenuBar_SelectDescriptor(TB_Apparel1ApparelBar, 1, true, false)
-	ZO_MenuBar_SelectDescriptor(self.menubar, CRAFTING_TYPE_BLACKSMITHING, true, true)
+	if not IsInGamepadPreferredMode() then
+	  ZO_MenuBar_SelectDescriptor(self.menubar, CRAFTING_TYPE_BLACKSMITHING, true, true)
+	end
 	self.research:AddCharacters()
 	self.launchers.smithing:SetHidden(not TraitBuddy.settings.showLaunch1)
 	self.launchers.skills:SetHidden(not TraitBuddy.settings.showLaunch2)
-	self.launchers.guildstore:SetHidden(not TraitBuddy.settings.showLaunch3)
+	if not IsInGamepadPreferredMode() then
+	  self.launchers.guildstore:SetHidden(not TraitBuddy.settings.showLaunch3)
+	end
 	self.created = true
 end
 
@@ -733,7 +965,7 @@ function TB_UI:UpdateTotals(c, craftingSkillType)
 		if c then
 			local _, _, numTraits, _ = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
 			for traitIndex = 1, numTraits do
-				if TraitBuddy:IsTraitKnown(c, craftingSkillType, researchLineIndex, traitIndex) then
+				if TraitBuddy.helpers:IsTraitKnown(c, craftingSkillType, researchLineIndex, traitIndex, TraitBuddy.settings.traitTable) then
 					numKnown = numKnown + 1
 				end
 			end
@@ -789,7 +1021,7 @@ function TB_UI:UpdateUI(craftingSkillType)
 			--trait.yes:SetHidden(not someoneKnows or someoneResearching)
 			--trait.research:SetHidden(not someoneKnows or someoneResearching)
 			--trait.no:SetHidden(not someoneKnows or someoneResearching)
-			
+
 			if selectedKnows then
 				trait.yes:SetColor(TraitBuddy.settings.colours.know.r, TraitBuddy.settings.colours.know.g, TraitBuddy.settings.colours.know.b)
 			else
@@ -802,11 +1034,11 @@ function TB_UI:UpdateUI(craftingSkillType)
 			end
 			trait.no:SetColor(TraitBuddy.settings.colours.not_known.r, TraitBuddy.settings.colours.not_known.g, TraitBuddy.settings.colours.not_known.b)
 
-			if c.markForResearch[craftingSkillType][researchLineIndex][traitIndex] then
+			if TraitBuddy.helpers:CheckMarkForResearch(c, craftingSkillType, researchLineIndex, traitIndex) then
 				trait.yes:SetColor(TraitBuddy.settings.colours.mark.r, TraitBuddy.settings.colours.mark.g, TraitBuddy.settings.colours.mark.b)
 				trait.no:SetColor(TraitBuddy.settings.colours.mark.r, TraitBuddy.settings.colours.mark.g, TraitBuddy.settings.colours.mark.b)
 			end
-			
+
 			--Longer version for now, get it working
 			if selectedKnows then
 				trait.yes:SetHidden(false)
@@ -833,7 +1065,6 @@ function TB_UI:UpdateUI(craftingSkillType)
 			end
 		end
 	end
-	
 	self:UpdateNumResearching(c)
 	self:UpdateTotals(c, craftingSkillType)
 end
@@ -848,7 +1079,10 @@ end
 function TB_UI:UpdateNumResearching(c)
 	--Update the number of items being researched
 	TBMaxResearchIcon:SetColor(TraitBuddy.settings.colours.researching.r, TraitBuddy.settings.colours.researching.g, TraitBuddy.settings.colours.researching.b)
-	local craftingSkillType = ZO_MenuBar_GetSelectedDescriptor(self.menubar)
+	local craftingSkillType
+	if not IsInGamepadPreferredMode() then
+	  craftingSkillType = ZO_MenuBar_GetSelectedDescriptor(self.menubar)
+	end
 	if craftingSkillType == CRAFTING_TYPE_BLACKSMITHING or craftingSkillType == CRAFTING_TYPE_CLOTHIER or craftingSkillType == CRAFTING_TYPE_WOODWORKING or craftingSkillType == CRAFTING_TYPE_JEWELRYCRAFTING then
 		local maxResearch = 0
 		local numResearching = 0

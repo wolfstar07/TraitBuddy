@@ -62,7 +62,9 @@ local function OnAltSelected(comboBox, characterName, item, selectionChanged)
 		TraitBuddy.ui:UpdateUI(CRAFTING_TYPE_CLOTHIER)
 		TraitBuddy.ui:UpdateUI(CRAFTING_TYPE_WOODWORKING)
 		TraitBuddy.ui:UpdateUI(CRAFTING_TYPE_JEWELRYCRAFTING)
-		TraitBuddy.ui.motifs:UpdateUI()
+		if not IsInGamepadPreferredMode() then
+		  TraitBuddy.ui.motifs:UpdateUI()
+		end
 	end
 end
 
