@@ -276,6 +276,7 @@ function TB_UI:Toggle()
 	SCENE_MANAGER:ToggleTopLevel(self.parent)
 	if not self.selector:IsCurrentCharacterSelected() then --Always select the current character when re-opening
 		self.selector:TrySelectCurrentCharacter()
+    self.menubar:EnableCurrentList()
 	end
 end
 
@@ -332,7 +333,9 @@ function TB_UI:SelectCraft(text, descriptor)
 	local crafting = self.parent:GetNamedChild("Crafting")
 	crafting:SetHidden(false)
 	self.selector:Show()
-	self.motifs:Hide()
+	if not IsInGamepadPreferredMode() then
+	  self.motifs:Hide()
+	end
 	self.research:Hide()
 	self.sets:Hide()
 	self.heading:GetNamedChild("Prof"):SetText(text)
@@ -543,18 +546,17 @@ function TB_UI:CreateTraits()
 	end
 end
 
-local function CreateIcon(control, data, sideFloat, offsetY)
+function TB_UI:CreateIcon(control, data, offsetY)
   if not offsetY then
     offsetY = 0
   end
-  if not GetControl(data.label) then
-	  icon = WINDOW_MANAGER:CreateControl(data.label, control, CT_BUTTON)
+  local icon
+  if not GetControl(data.text) then
+	  icon = WINDOW_MANAGER:CreateControl(data.text, self.heading, CT_BUTTON)
     icon:SetDimensions(64, 64)
-    icon:SetAnchor(BOTTOM, control, BOTTOM, sideFloat, offsetY)
-    icon:SetNormalTexture(data.normal)
-    icon:SetHandler("OnClicked", function(control)
-      data.callback(data)
-    end)
+    icon:SetAnchor(BOTTOM, self.heading, BOTTOM, data.sideFloat, offsetY)
+    icon:SetNormalTexture(data.iconsNormal[1])
+    icon:SetHandler("OnClicked", data.callback)
     icon:SetText(data.label)
     icon:SetHidden(false)
     return icon
@@ -562,22 +564,24 @@ local function CreateIcon(control, data, sideFloat, offsetY)
   return GetControl(data.label)
 end
 
-TB_Gamepad = ZO_Gamepad_ParametricList_Screen:Subclass()
+TB_Gamepad = ZO_GamepadVerticalParametricScrollList:Subclass()
 
-function TB_Gamepad:New(control, parent)
+TB_GamepadScreen = ZO_Gamepad_ParametricList_Screen:Subclass()
+
+function TB_GamepadScreen:New(control, parent)
   self.parent = parent
   return ZO_Gamepad_ParametricList_Screen.New(self, control)
 end
 
-function TB_Gamepad:Initialize(control)
+function TB_GamepadScreen:Initialize(control)
   ZO_Gamepad_ParametricList_Screen.Initialize(self, control)
 end
 
-function TB_Gamepad:EnableCurrentList()
+function TB_GamepadScreen:EnableCurrentList()
   ZO_Gamepad_ParametricList_Screen:EnableCurrentList()
 end
 
-function TB_Gamepad:PerformUpdate()
+function TB_GamepadScreen:PerformUpdate()
 end
 
 function TB_UI:CreateMenus()
@@ -587,9 +591,17 @@ function TB_UI:CreateMenus()
 
 	if IsInGamepadPreferredMode() then
 	  if not self.menubar then
-	    local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("CraftMenuBarList", self.heading, "CraftMenuBar")
-	    self.menubar = TB_Gamepad:New(subcontrol)
-	    list = self.menubar:CreateAndSetupList(subcontrol)
+	    local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)CraftMenuBarList", self.heading, "TB_CraftMenuBar")
+	    self.menubar = TB_GamepadScreen:New(subcontrol)
+	    list = self.menubar:AddList("TB_HorizontalIconList")
+	    list:AddDataTemplate(
+          "TB_GamepadIconEntryTemplate",
+          function(control, data)
+              self:CreateIcon(control, data, sideFloat, offsetY)
+          end,
+          ZO_GamepadMenuEntryTemplateParametricListFunction
+      )
+
     end
 
   else
@@ -616,8 +628,11 @@ function TB_UI:CreateMenus()
 		label = zo_cachedstr(SI_ABILITY_NAME, ZO_GetCraftingSkillName(CRAFTING_TYPE_BLACKSMITHING))
 	}
 	if IsInGamepadPreferredMode() then
-    local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+    local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = -180
+    entryData.focusable = true
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
     --CreateIcon(self.heading, data, -180)
 	else
 	  ZO_MenuBar_AddButton(self.menubar, data)
@@ -634,8 +649,10 @@ function TB_UI:CreateMenus()
 		label = zo_cachedstr(SI_ABILITY_NAME, ZO_GetCraftingSkillName(CRAFTING_TYPE_CLOTHIER))
 	}
 	if IsInGamepadPreferredMode() then
-	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = -120
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
 	  --CreateIcon(self.heading, data, -110)
 	else
 	  ZO_MenuBar_AddButton(self.menubar, data)
@@ -651,8 +668,10 @@ function TB_UI:CreateMenus()
 		label = zo_cachedstr(SI_ABILITY_NAME, ZO_GetCraftingSkillName(CRAFTING_TYPE_WOODWORKING))
 	}
 	if IsInGamepadPreferredMode() then
-	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = -60
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
 	  --CreateIcon(self.heading, data, -60)
 	else
 	  ZO_MenuBar_AddButton(self.menubar, data)
@@ -668,8 +687,10 @@ function TB_UI:CreateMenus()
 		label = zo_cachedstr(SI_ABILITY_NAME, ZO_GetCraftingSkillName(CRAFTING_TYPE_JEWELRYCRAFTING))
 	}
 	if IsInGamepadPreferredMode() then
-	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = 10
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
 	  --CreateIcon(self.heading, data, 10)
 	else
 	  ZO_MenuBar_AddButton(self.menubar, data)
@@ -684,8 +705,10 @@ function TB_UI:CreateMenus()
 		label = GetString("SI_ITEMTYPE", ITEMTYPE_RACIAL_STYLE_MOTIF)
 	}
 	if IsInGamepadPreferredMode() then
-	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = 80
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
 	  --CreateIcon(self.heading, data, 80)
 	else
 	  ZO_MenuBar_AddButton(self.menubar, data)
@@ -700,8 +723,10 @@ function TB_UI:CreateMenus()
 		label = GetString(TB_SETS)
 	}
 	if IsInGamepadPreferredMode() then
-	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = 150
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
 	  --CreateIcon(self.heading, data, 150)
 	else
 	  ZO_MenuBar_AddButton(self.menubar, data)
@@ -716,10 +741,11 @@ function TB_UI:CreateMenus()
 		label = GetString(SI_SMITHING_TAB_RESEARCH)
 	}
 	if IsInGamepadPreferredMode() then
-	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    list:AddEntry("ZO_GamepadMenuEntryTemplate", entryData)
+	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal)
+    entryData.callback = data.callback
+    entryData.sideFloat = 220
+    list:AddEntry("TB_GamepadIconEntryTemplate", entryData)
     list:Commit()
-    self.menubar:EnableCurrentList()
 	  --CreateIcon(self.heading, data, 220)
 	else
 	  ZO_MenuBar_AddButton(self.menubar, data)
@@ -729,9 +755,8 @@ function TB_UI:CreateMenus()
 	local bsApparel
 	local bsApparelList
 	if IsInGamepadPreferredMode() then
-	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("ApparelBarList1", TB_Apparel1, "CraftMenuBar")
+	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)ApparelBarList1", TB_Apparel1, "TB_CraftMenuBar")
     bsApparel = TB_Gamepad:New(subcontrol)
-    bsApparelList = bsApparel:CreateAndSetupList(subcontrol)
 	else
 	  bsApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel1, "ZO_MenuBarTemplate")
 	  bsApparel:SetAnchor(RIGHT, TB_Apparel1, RIGHT, 0, 0)
@@ -758,7 +783,7 @@ function TB_UI:CreateMenus()
 	}
 	if IsInGamepadPreferredMode() then
 	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    bsApparelList:AddEntry("ZO_GamepadMenuEntryTemplateA", entryData)
+    bsApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
 	  --CreateIcon(TB_Apparel1, data, -40, 20)
 	else
 	  ZO_MenuBar_AddButton(bsApparel, data)
@@ -775,9 +800,8 @@ function TB_UI:CreateMenus()
 	}
 	if IsInGamepadPreferredMode() then
 	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    bsApparelList:AddEntry("ZO_GamepadMenuEntryTemplateB", entryData)
-    bsApparelList:Commit()
-    bsApparel:EnableCurrentList()
+    bsApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+    bsApparel:Commit()
 	  --CreateIcon(TB_Apparel1, data, 30, 20)
 	else
 	  ZO_MenuBar_AddButton(bsApparel, data)
@@ -787,9 +811,8 @@ function TB_UI:CreateMenus()
 	local clApparel
 	local clApparelList
 	if IsInGamepadPreferredMode() then
-	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("ApparelBarList2", TB_Apparel2, "CraftMenuBar")
+	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)ApparelBarList2", TB_Apparel2, "TB_CraftMenuBar")
     clApparel = TB_Gamepad:New(subcontrol)
-    clApparelList = clApparel:CreateAndSetupList(subcontrol)
 	else
 	  clApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel2, "ZO_MenuBarTemplate")
 	  clApparel:SetAnchor(RIGHT, TB_Apparel2, RIGHT, 0, 0)
@@ -816,7 +839,7 @@ function TB_UI:CreateMenus()
 	}
 	if IsInGamepadPreferredMode() then
 	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    clApparelList:AddEntry("ZO_GamepadMenuEntryTemplateC", entryData)
+    clApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
 	  --CreateIcon(TB_Apparel2, data, -40, 20)
 	else
 	  ZO_MenuBar_AddButton(clApparel, data)
@@ -833,9 +856,8 @@ function TB_UI:CreateMenus()
 	}
 	if IsInGamepadPreferredMode() then
 	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    clApparelList:AddEntry("ZO_GamepadMenuEntryTemplateD", entryData)
-    clApparelList:Commit()
-    clApparel:EnableCurrentList()
+    clApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+    clApparel:Commit()
 	  --CreateIcon(TB_Apparel2, data, 30, 20)
 	else
 	  ZO_MenuBar_AddButton(clApparel, data)
@@ -843,13 +865,10 @@ function TB_UI:CreateMenus()
 	
 	--Create menu bar and buttons for woodworking weapons and shields
 	local wwApparel
-
-	local wwApparel
 	local wwApparelList
 	if IsInGamepadPreferredMode() then
-	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("ApparelBar6List", TB_Apparel6, "CraftMenuBar")
+	  local subcontrol = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)ApparelBar6List", TB_Apparel6, "TB_CraftMenuBar")
     wwApparel = TB_Gamepad:New(subcontrol)
-    wwApparelList = wwApparel:CreateAndSetupList(subcontrol)
 	else
 	  wwApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel6, "ZO_MenuBarTemplate")
 	  wwApparel:SetAnchor(RIGHT, TB_Apparel6, RIGHT, 0, 0)
@@ -876,7 +895,7 @@ function TB_UI:CreateMenus()
 	}
 	if IsInGamepadPreferredMode() then
 	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    wwApparelList:AddEntry("ZO_GamepadMenuEntryTemplateE", entryData)
+    wwApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
 	  --CreateIcon(TB_Apparel6, data, -40, 20)
 	else
 	  ZO_MenuBar_AddButton(wwApparel, data)
@@ -893,9 +912,8 @@ function TB_UI:CreateMenus()
 	}
 	if IsInGamepadPreferredMode() then
 	  local entryData = ZO_GamepadEntryData:New(data.label, data.normal, nil, nil, data.callback)
-    wwApparelList:AddEntry("ZO_GamepadMenuEntryTemplateF", entryData)
-    wwApparelList:Commit()
-    wwApparel:EnableCurrentList()
+    wwApparel:AddEntry("TB_GamepadIconEntryTemplate", entryData)
+    wwApparel:Commit()
 	  --CreateIcon(TB_Apparel6, data, 30, 20)
 	else
 	  ZO_MenuBar_AddButton(wwApparel, data)

@@ -2,18 +2,8 @@
 	<Font name="TBFontItemCategory" font="$(BOLD_FONT)|$(KB_16)|soft-shadow-thin"/>
 	<Font name="TBFontGame16" font="$(MEDIUM_FONT)|$(KB_16)|soft-shadow-thin"/>
 	<Controls>
-		<Control name="CraftMenuBar" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" >
-			<Controls>
-				<Control name="$(parent)Mask" excludeFromResizeToFitExtents="true" override="true">
-					<Controls>
-						<Control name="$(parent)Container" excludeFromResizeToFitExtents="true" override="true">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)Heading" relativePoint="BOTTOMLEFT" offsetY="20"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)Heading" relativePoint="BOTTOMRIGHT" offsetY="20"/>
-						</Control>
-					</Controls>
-				</Control>
-			</Controls>
-		</Control>
+		<Control name="TB_CraftMenuBar" inherits="ZO_Gamepad_ParametricList_Screen" virtual="true" />
+		<Control name="TB_GamepadIconEntryTemplate" virtual="true" inherits="ZO_GamepadMenuEntryTemplate"/>
 		<Control name="TB_Trait" excludeFromResizeToFitExtents="true" virtual="true">
 			<Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP"/>
 			<Dimensions x="40" y="34"/>
