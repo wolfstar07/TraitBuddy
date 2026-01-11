@@ -2,11 +2,10 @@
 ## Description: Manage and keep track of what crafting research traits all your characters know.
 ## Author: Weolo, WolfStar07
 ## SavedVariables: TraitBuddySettings
-## Version: 9.9
-## AddOnVersion: 139
-## APIVersion: 101048 101047
-## PCDependsOn: LibAddonMenu-2.0>=40
-## ConsoleDependsOn: LibHarvensAddonSettings>=20003 LibConsoleDialogs
+## Version: 9.10
+## AddOnVersion: 141
+## APIVersion: 101048 101049
+## DependsOn: LibAddonMenu-2.0>=41
 ## OptionalDependsOn: LibLazyCrafting 
 lang/$(language).lua
 
