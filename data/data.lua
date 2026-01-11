@@ -213,9 +213,11 @@ local motifs = {
 	[129] = M:New("Hircine Bloodhunter", 151, nil, 12275, 203834, LEG, false),
 	[130] = M:New("Exile's Revenge", 153, 4159, 12879, 211054),
 	[131] = M:New("Militant Monk", 154, 4160, 12911, 211071),
---	[132] = M:New("Stirk Fellowship", 155, 4240, 13119, 212084),
---	[133] = M:New("Coldharbour Dominator", 156, 4241, 13151, 212101),
+	[132] = M:New("Stirk Fellowship", 155, 4240, 13119, 212084),
+	[133] = M:New("Coldharbour Dominator", 156, 4241, 13151, 212101),
 	[134] = M:New("Tide-Born", 157, 4242, 13183, 212118),
+	[135] = M:New("Black Soul Gem", 158, 4289, 13310, 212424),
+	[136] = M:New("Voskrona Guardian", 159, 4290, 13342, 212441),
 }
 
 --Chapter to motif book order, matches achievement
@@ -365,9 +367,9 @@ local sets = {
 	[79] = {id=205393 , traits=3, locations={[1]={zone=L:New(zones.west_weald)}}, test="Tharriker’s Strike"},
 	[80] = {id=206153 , traits=7, locations={[1]={zone=L:New(zones.west_weald)}}, test="Threads of War"},
 
---	[82] = {id=215099 , traits= , locations={[1]={zone=L:New(zones.solstice)}}, test="Shared Burden"},
+	[82] = {id=215099 , traits=3, locations={[1]={zone=L:New(zones.solstice)}}, test="Shared Burden"},
 	[81] = {id=215479 , traits=5, locations={[1]={zone=L:New(zones.solstice)}}, test="Tide-Born Wildstalker"},
---	[83] = {id=215859 , traits= , locations={[1]={zone=L:New(zones.solstice)}}, test="Fellowship's Fortitude"},
+	[83] = {id=215859 , traits=7, locations={[1]={zone=L:New(zones.solstice)}}, test="Fellowship's Fortitude"},
 }
 
 TB_Data = ZO_Object:Subclass()
