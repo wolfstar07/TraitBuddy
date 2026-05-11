@@ -37,18 +37,17 @@ function TB_Inventory:Initialize()
 end
 
 function TB_Inventory:IsWeapon(da)
-	return (da.itemType==ITEMTYPE_WEAPON)
+	return da and (da.itemType==ITEMTYPE_WEAPON)
 end
 
 function TB_Inventory:IsArmour(da)
 	--Includes jewellery
-	return (da.itemType==ITEMTYPE_ARMOR and da.equipType~=EQUIP_TYPE_INVALID and da.equipType~=EQUIP_TYPE_COSTUME)
+	return da and (da.itemType==ITEMTYPE_ARMOR and da.equipType~=EQUIP_TYPE_INVALID and da.equipType~=EQUIP_TYPE_COSTUME)
 end
 
 function TB_Inventory:IsMotif(da)
-	return (da.itemType==ITEMTYPE_RACIAL_STYLE_MOTIF)
+	return da and (da.itemType==ITEMTYPE_RACIAL_STYLE_MOTIF)
 end
-
 
 function TB_Inventory:CreateInventoryControl(parent)
 	local control = CreateControl("$(parent)TBIndicator", parent, CT_TEXTURE)
@@ -76,6 +75,7 @@ function TB_Inventory:UpdateInventoryControl(control, hidden, r, g, b)
 end
 
 function TB_Inventory:GetInventoryControl(parent)
+	if not parent then return nil end
 	local control = parent:GetNamedChild("TBIndicator")
 	if control then
 		control:SetHidden(true)
@@ -85,21 +85,36 @@ end
 
 function TB_Inventory:HookInventory()
 	for k,inv in pairs(self.inventories) do
-		local show = TraitBuddy.settings.inventory.show[inv.showKey]
-		SecurePostHook(ZO_ScrollList_GetDataTypeTable(inv.list, 1), "setupCallback", function(control, dataEntryData)
-			local indicator = self:GetInventoryControl(control)
-
-			-- Only create the control if really need to
-			if show then
-				if self:IsWeapon(dataEntryData) or self:IsArmour(dataEntryData) or self:IsMotif(dataEntryData) then
-					if indicator == nil then
-						indicator = self:CreateInventoryControl(control)
+		-- Add safety checks
+		if not inv.list then
+			d("[TraitBuddy] Warning: Inventory list for " .. k .. " is nil, skipping hook")
+		else
+			local dataType = ZO_ScrollList_GetDataTypeTable(inv.list, 1)
+			if not dataType then
+				d("[TraitBuddy] Warning: Could not get data type for " .. k .. ", skipping hook")
+			else
+				local show = TraitBuddy.settings.inventory.show[inv.showKey]
+				SecurePostHook(dataType, "setupCallback", function(control, dataEntryData)
+					-- Add nil checks
+					if not control or not dataEntryData then
+						return
 					end
-					local toHide, r, g, b = self:GetDetails(dataEntryData)
-					self:UpdateInventoryControl(indicator, toHide, r, g, b)
-				end
+					
+					local indicator = self:GetInventoryControl(control)
+
+					-- Only create the control if really need to
+					if show then
+						if self:IsWeapon(dataEntryData) or self:IsArmour(dataEntryData) or self:IsMotif(dataEntryData) then
+							if indicator == nil then
+								indicator = self:CreateInventoryControl(control)
+							end
+							local toHide, r, g, b = self:GetDetails(dataEntryData)
+							self:UpdateInventoryControl(indicator, toHide, r, g, b)
+						end
+					end
+				end)
 			end
-		end)
+		end
 	end
 end
 
@@ -109,21 +124,39 @@ function TB_Inventory:GetDetails(dataEntry)
 	local r = col.r
 	local g = col.g
 	local b = col.b
-	if dataEntry == nil then
+	
+	-- Enhanced nil check
+	if not dataEntry or not dataEntry.bagId or not dataEntry.slotIndex then
 		return toHide, r, g, b
 	end
+	
 	if GetItemTraitInformation(dataEntry.bagId, dataEntry.slotIndex) == ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED then
 		return toHide, r, g, b
 	end
+	
 	local itemLink = GetItemLink(dataEntry.bagId, dataEntry.slotIndex, LINK_STYLE_BRACKETS)
+	if not itemLink or itemLink == "" then
+		return toHide, r, g, b
+	end
+	
 	local itemType = GetItemLinkItemType(itemLink)
 	if itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
+		-- Check if TraitBuddy.data exists
+		if not TraitBuddy.data then
+			return toHide, r, g, b
+		end
+		
 		local itemStyleId, chapter, motifOrder, chapterOrder = TraitBuddy.data:GetMotifStyle(itemLink)
 		if itemStyleId > 0 then
+			-- Check if ui.motifs exists
+			if not TraitBuddy.ui or not TraitBuddy.ui.motifs then
+				return toHide, r, g, b
+			end
+			
 			local kk, dd = TraitBuddy.ui.motifs:GetWhoKnowsMotif(motifOrder, chapterOrder, true)
 			toHide = (#dd==0)
 			local c = TraitBuddy:GetCharacter(TraitBuddy.characterId)
-			if ZO_IsElementInNumericallyIndexedTable(dd, c.name) then
+			if c and ZO_IsElementInNumericallyIndexedTable(dd, c.name) then
 				r = 1
 				g = 1
 				b = 1
