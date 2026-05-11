@@ -1,6 +1,9 @@
 local sf = string.format
 local zo_str = zo_strformat
 
+TB_Data_Motif = TB_Data_Motif or {}
+TB_Data_Motif.__index = TB_Data_Motif
+
 local function GetCrownTestName()
 	local id = 96954 -- Crown Crafting Motif 46: Frostcaster Style
 	local link = GetItemLinkName(ZO_LinkHandler_CreateLink("Crown Motif",nil,ITEM_LINK_TYPE,id,ITEM_FUNCTIONAL_QUALITY_LEGENDARY+1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))
@@ -11,7 +14,15 @@ local function GetCrownTestName()
 		return zo_strsub(linkName, 1, findStart):lower()
 	end
 end
+
 local crownTestName = GetCrownTestName()
+
+local crownStoreOnlyMotifs = {
+	[43] = true,  -- Grim Harlequin
+	[46] = true,  -- Frostcaster
+	[53] = true,  -- Tsaesci
+	[129] = true, -- Hircine Bloodhunter
+}
 
 TB_Data_Motif = ZO_Object:Subclass()
 function TB_Data_Motif:New(test, itemStyleId, achievementId, collectibleId, id, quality, hasChapters)
@@ -110,6 +121,12 @@ function TB_Data_Motif:ChapterId(order)
 end
 
 function TB_Data_Motif:IsCrownStoreOnly()
+	-- Check explicit list first (most reliable)
+	if crownStoreOnlyMotifs[self._order] then
+		return true
+	end
+	
+	-- Fallback to link name detection for older motifs
 	local linkName = self:LinkName()
 	if linkName == nil then return false end
 	local found, findStart, findEnd = zo_plainstrfind(linkName:lower(), crownTestName)
