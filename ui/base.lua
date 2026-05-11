@@ -2,49 +2,16 @@ local sf = string.format
 local zo_str = zo_strformat
 local zo_cachedstr = ZO_CachedStrFormat
 
---General ui functions and anything related to the traits
-local function GetApparelData(craftingSkillType)
-	local bar = nil
-	if craftingSkillType == CRAFTING_TYPE_BLACKSMITHING then
-		bar = TB_Apparel1ApparelBar
-	elseif craftingSkillType == CRAFTING_TYPE_CLOTHIER then
-		bar = TB_Apparel2ApparelBar
-	elseif craftingSkillType == CRAFTING_TYPE_WOODWORKING then
-		bar = TB_Apparel6ApparelBar
-	elseif craftingSkillType == CRAFTING_TYPE_JEWELRYCRAFTING then
-		return {
-			label = GetString(SI_TRADINGHOUSECATEGORYHEADER8),
-			descriptor = 0
-		}
-	end
-	if bar then
-		local descriptor = ZO_MenuBar_GetSelectedDescriptor(bar)
-		if descriptor then
-			local button = ZO_MenuBar_GetButtonControl(bar, descriptor)
-			return ZO_MenuBarButtonTemplate_GetData(button)
-		else
-			--No button was chosen yet, select the first button, which will fire off the OnApparelSelect() again
-			ZO_MenuBar_SelectDescriptor(bar, 1, true, false)
-		end
-	end
-	return nil
-end
-
 local function OnApparelSelect(data)
+	-- Both sub-panels are shown side-by-side; just show/hide the correct crafting type's pair
 	local craftingSkillType = ZO_MenuBar_GetSelectedDescriptor(TraitBuddy.ui.menubar)
-	if data==nil then
-		data = GetApparelData(craftingSkillType)
-	end
-	if data then
-		TB_Apparel:SetText(data.label)
-		TBCrafting1Weapons:SetHidden(not (craftingSkillType == CRAFTING_TYPE_BLACKSMITHING and data.descriptor == 1))
-		TBCrafting1Armour:SetHidden(not (craftingSkillType == CRAFTING_TYPE_BLACKSMITHING and data.descriptor == 2))
-		TBCrafting2Light:SetHidden(not (craftingSkillType == CRAFTING_TYPE_CLOTHIER and data.descriptor == 1))
-		TBCrafting2Medium:SetHidden(not (craftingSkillType == CRAFTING_TYPE_CLOTHIER and data.descriptor == 2))
-		TBCrafting6Weapons:SetHidden(not (craftingSkillType == CRAFTING_TYPE_WOODWORKING and data.descriptor == 1))
-		TBCrafting6Shields:SetHidden(not (craftingSkillType == CRAFTING_TYPE_WOODWORKING and data.descriptor == 2))
-	end
-	TBCrafting7All:SetHidden(not (craftingSkillType == CRAFTING_TYPE_JEWELRYCRAFTING))
+	TBCrafting1Weapons:SetHidden(craftingSkillType ~= CRAFTING_TYPE_BLACKSMITHING)
+	TBCrafting1Armour:SetHidden(craftingSkillType ~= CRAFTING_TYPE_BLACKSMITHING)
+	TBCrafting2Light:SetHidden(craftingSkillType ~= CRAFTING_TYPE_CLOTHIER)
+	TBCrafting2Medium:SetHidden(craftingSkillType ~= CRAFTING_TYPE_CLOTHIER)
+	TBCrafting6Weapons:SetHidden(craftingSkillType ~= CRAFTING_TYPE_WOODWORKING)
+	TBCrafting6Shields:SetHidden(craftingSkillType ~= CRAFTING_TYPE_WOODWORKING)
+	TBCrafting7All:SetHidden(craftingSkillType ~= CRAFTING_TYPE_JEWELRYCRAFTING)
 end
 
 local function OnCraftSelect(data)
@@ -108,6 +75,7 @@ function TB_UI:IsCreated()
 	return self.created
 end
 
+-- Utility
 function TB_UI:AddLinkToChat(tt, s)
 	if s and s>0 then
 		tt:AddVerticalPadding(s)
@@ -118,13 +86,17 @@ end
 function TB_UI:RowHeading_OnMouseEnter(control)
 	local o = control:GetParent()
 	local r, g, b = ZO_SELECTED_TEXT:UnpackRGB()
+																							
 	local traitDescription, traitResearchSourceDescription, traitMaterialSourceDescription = GetSmithingResearchLineTraitDescriptions(o.craftingSkillType, o.researchLineIndex, o.traitIndex)
 	InitializeTooltip(InformationTooltip, control, RIGHT, -10)
 	InformationTooltip:AddLine(GetString("SI_ITEMTRAITTYPE", o.traitType), "", r, g, b, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
+															   
 	ZO_Tooltip_AddDivider(InformationTooltip)
 	InformationTooltip:AddLine(traitDescription, "", r, g, b, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
+															   
 	InformationTooltip:AddVerticalPadding(15)
 	InformationTooltip:AddLine(zo_str(SI_SMITHING_TRAIT_RESEARCH_SOURCE_DESCRIPTION, traitResearchSourceDescription), "", r, g, b, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
+																			
 	InformationTooltip:AddVerticalPadding(15)
 	InformationTooltip:AddLine(zo_str(SI_SMITHING_TRAIT_MATERIAL_SOURCE_DESCRIPTION, traitMaterialSourceDescription), "", r, g, b, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
 end
@@ -321,41 +293,37 @@ function TB_UI:SelectCraft(text, descriptor)
 	crafting:GetNamedChild(CRAFTING_TYPE_JEWELRYCRAFTING):SetHidden(descriptor ~= CRAFTING_TYPE_JEWELRYCRAFTING)
 	
 	self:UpdateNumResearching()
-	
-	TB_Apparel1:SetHidden(descriptor ~= CRAFTING_TYPE_BLACKSMITHING)
-	TB_Apparel2:SetHidden(descriptor ~= CRAFTING_TYPE_CLOTHIER)
-	TB_Apparel6:SetHidden(descriptor ~= CRAFTING_TYPE_WOODWORKING)
 	crafting:GetNamedChild("Headings"):GetNamedChild("Div"):SetHidden(descriptor == CRAFTING_TYPE_JEWELRYCRAFTING)
-	
-	--Ensure when switching crafting types the selected weapons or armour update as well
+
+	-- Show both sub-panels for the selected crafting type side-by-side
 	OnApparelSelect()
 end
 
 function TB_UI:SelectResearch(text)
-	self.parent:GetNamedChild("Crafting"):SetHidden(true)
-	self.selector:Hide()
-	self.motifs:Hide()
-	self.research:Show()
-	self.sets:Hide()
-	self.heading:GetNamedChild("Prof"):SetText(text)
+    self.parent:GetNamedChild("Crafting"):SetHidden(true)
+    self.selector:Hide()
+    self.motifs:Hide()
+    self.research:Show()
+    self.sets:Hide()
+    self.heading:GetNamedChild("Prof"):SetText(text)
 end
 
 function TB_UI:SelectMotif(text)
-	self.parent:GetNamedChild("Crafting"):SetHidden(true)
-	self.selector:Show()
-	self.motifs:Show()
-	self.research:Hide()
-	self.sets:Hide()
-	self.heading:GetNamedChild("Prof"):SetText(text)
+    self.parent:GetNamedChild("Crafting"):SetHidden(true)
+    self.selector:Show()
+    self.motifs:Show()
+    self.research:Hide()
+    self.sets:Hide()
+    self.heading:GetNamedChild("Prof"):SetText(text)
 end
 
 function TB_UI:SelectSets(text)
-	self.parent:GetNamedChild("Crafting"):SetHidden(true)
-	self.selector:Hide()
-	self.motifs:Hide()
-	self.research:Hide()
-	self.sets:Show()
-	self.heading:GetNamedChild("Prof"):SetText(text)
+    self.parent:GetNamedChild("Crafting"):SetHidden(true)
+    self.selector:Hide()
+    self.motifs:Hide()
+    self.research:Hide()
+    self.sets:Show()
+    self.heading:GetNamedChild("Prof"):SetText(text)
 end
 
 function TB_UI:GetResearchSplit()
@@ -422,32 +390,6 @@ function TB_UI:CreateTraits()
 			d(sf("TraitBuddy DEBUG: %s index %d vs %d", traitIcon.name, traitIcon.traitItemIndex, trait.index))
 		end
 	end
-	-- local newFound = 0
-	-- for idx,trait in pairs(allTraits) do
-	-- 	if trait.type ~= ITEM_TRAIT_TYPE_NONE then
-	-- 		newFound = newFound + 1
-	-- 	end
-	-- end
-	-- d(sf("TraitBuddy DEBUG: traitIcons %s new traits %s", #traitIcons, #allTraits))
-	
-	-- compare icon in traitIcons to icon in allTraits show a message if they are different
-	-- for idx_trait,trait in pairs(traitIcons) do
-	-- 	local foundTrait = false
-	-- 	local foundAt
-	-- 	for idx_allTraits,allTrait in pairs(allTraits) do
-	-- 		foundAt = idx_allTraits
-	-- 		if trait.name == allTrait.name then
-	-- 			foundTrait = true
-	-- 			break
-	-- 		end
-	-- 	end
-	-- 	if foundTrait then
-	-- 		d(sf("%d %s found at position %d", idx_trait, trait.name, foundAt))
-	-- 	else
-	-- 		d(sf("%d %s NOT found", idx_trait, trait.name))
-	-- 	end
-	-- end
-	
 
 	--Create trait ui
 	local crafting = self.parent:GetNamedChild("Crafting")
@@ -506,6 +448,7 @@ function TB_UI:CreateTraits()
 			local lastTrait
 			for traitIndex = 1, numTraits do
 				local traitType = GetSmithingResearchLineTraitInfo(craftingSkillType, researchLineIndex, traitIndex)
+				
 				local trait = CreateControlFromVirtual("$(parent)Trait", column.container, "TB_Trait", traitIndex)
 				if lastTrait then
 					trait:SetAnchor(TOP, lastTrait, BOTTOM, 0, 0)
@@ -527,7 +470,7 @@ function TB_UI:CreateMenus()
 	self.menubar = CreateControlFromVirtual("$(parent)CraftMenuBar", self.heading, "ZO_MenuBarTemplate")
 	self.menubar:SetAnchor(RIGHT, self.heading, RIGHT, -20, 0)
 	local data = {
-		buttonPadding = 15,
+		buttonPadding = 25,
 		normalSize = 64,
 		downSize = 74
 	}
@@ -603,95 +546,6 @@ function TB_UI:CreateMenus()
 	}
 	ZO_MenuBar_AddButton(self.menubar, data)
 	
-	--Create menu bar and buttons for blacksmith weapons and armour
-	local bsApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel1, "ZO_MenuBarTemplate")
-	bsApparel:SetAnchor(RIGHT, TB_Apparel1, RIGHT, 0, 0)
-	data = {
-		buttonPadding = 15,
-		normalSize = 54,
-		downSize = 64
-	}
-	ZO_MenuBar_SetData(bsApparel, data)
-	data = {
-		descriptor = 1,
-		normal = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_up.dds",
-		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_down.dds",
-		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_disabled.dds",
-		highlight = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_over.dds",
-		callback = OnApparelSelect,
-		label = GetString(SI_TRADINGHOUSECATEGORYHEADER1)
-	}
-	ZO_MenuBar_AddButton(bsApparel, data)
-	data = {
-		descriptor = 2,
-		normal = "EsoUI/Art/Inventory/inventory_tabIcon_armor_up.dds",
-		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_armor_down.dds",
-		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_armor_disabled.dds",
-		highlight = "EsoUI/Art/Inventory/inventory_tabIcon_armor_over.dds",
-		callback = OnApparelSelect,
-		label = GetString(SI_ARMORTYPE_TRADINGHOUSECATEGORY3)
-	}
-	ZO_MenuBar_AddButton(bsApparel, data)
-	
-	--Create menu bar and buttons for clothing armours
-	local clApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel2, "ZO_MenuBarTemplate")
-	clApparel:SetAnchor(RIGHT, TB_Apparel2, RIGHT, 0, 0)
-	data = {
-		buttonPadding = 15,
-		normalSize = 54,
-		downSize = 64
-	}
-	ZO_MenuBar_SetData(clApparel, data)
-	data = {
-		descriptor = 1,
-		normal = "EsoUI/Art/Inventory/inventory_tabIcon_armorLight_up.dds",
-		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_armorLight_down.dds",
-		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_armorLight_up.dds",
-		highlight = "EsoUI/Art/Inventory/inventory_tabIcon_armorLight_over.dds",
-		callback = OnApparelSelect,
-		label = GetString(SI_EQUIPMENTFILTERTYPE1)
-	}
-	ZO_MenuBar_AddButton(clApparel, data)
-	data = {
-		descriptor = 2,
-		normal = "EsoUI/Art/Inventory/inventory_tabIcon_armorMedium_up.dds",
-		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_armorMedium_down.dds",
-		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_armorMedium_up.dds",
-		highlight = "EsoUI/Art/Inventory/inventory_tabIcon_armorMedium_over.dds",
-		callback = OnApparelSelect,
-		label = GetString(SI_EQUIPMENTFILTERTYPE2)
-	}
-	ZO_MenuBar_AddButton(clApparel, data)
-	
-	--Create menu bar and buttons for woodworking weapons and shields
-	local wwApparel = CreateControlFromVirtual("$(parent)ApparelBar", TB_Apparel6, "ZO_MenuBarTemplate")
-	wwApparel:SetAnchor(RIGHT, TB_Apparel6, RIGHT, 0, 0)
-	data = {
-		buttonPadding = 15,
-		normalSize = 54,
-		downSize = 64
-	}
-	ZO_MenuBar_SetData(wwApparel, data)
-	data = {
-		descriptor = 1,
-		normal = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_up.dds",
-		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_down.dds",
-		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_disabled.dds",
-		highlight = "EsoUI/Art/Inventory/inventory_tabIcon_weapons_over.dds",
-		callback = OnApparelSelect,
-		label = GetString(SI_TRADINGHOUSECATEGORYHEADER1)
-	}
-	ZO_MenuBar_AddButton(wwApparel, data)
-	data = {
-		descriptor = 2,
-		normal = "EsoUI/Art/Inventory/inventory_tabIcon_armor_up.dds",
-		pressed = "EsoUI/Art/Inventory/inventory_tabIcon_armor_down.dds",
-		disabled = "EsoUI/Art/Inventory/inventory_tabIcon_armor_disabled.dds",
-		highlight = "EsoUI/Art/Inventory/inventory_tabIcon_armor_over.dds",
-		callback = OnApparelSelect,
-		label = GetString(SI_TRADING_HOUSE_BROWSE_ARMOR_TYPE_SHIELD)
-	}
-	ZO_MenuBar_AddButton(wwApparel, data)
 end
 
 function TB_UI:Create()
@@ -708,7 +562,7 @@ function TB_UI:Create()
 	self.launchers.smithing:SetHidden(not TraitBuddy.settings.showLaunch1)
 	self.launchers.skills:SetHidden(not TraitBuddy.settings.showLaunch2)
 	self.launchers.guildstore:SetHidden(not TraitBuddy.settings.showLaunch3)
-	self.created = true
+    self.created = true
 end
 
 function TB_UI:UpdateTotals(c, craftingSkillType)
