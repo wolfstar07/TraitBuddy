@@ -1,50 +1,41 @@
 local sf = string.format
 
-local zones = {
-	glenumbra = { id=3 },
-	stormhaven = { id=19 },
-	rivenspire = { id=20 },
-	stonefalls = { id=41 },
-	deshaan = { id=57 },
-	malabaltor = { id=58 },
-	bangkorai = { id=92 },
-	eastmarch = { id=101 },
-	therift = { id=103 },
-	alikrdesert = { id=104 },
-	greenshade = { id=108 },
-	shadowfen = { id=117 },
-	cyrodiil = { id=181, icon="esoui/art/treeicons/tutorial_idexicon_ava_up.dds" },
-	eyevea = { id=267, icon="/esoui/art/treeicons/antiquities_tabicon_eyevea_up.dds" },
-	coldharbour = { id=347, icon="/esoui/art/treeicons/antiquities_tabicon_coldharbour_up.dds" },
-	auridon = { id=381 },
-	reapersmarch = { id=382 },
-	grahtwood = { id=383 },
-	imperialcity = { id=584, icon="esoui/art/treeicons/tutorial_indexicon_ic_up.dds" },
-	earthforge = { id=642, icon="esoui/art/icons/servicemappins/servicepin_fightersguild.dds" },
-	wrothgar = { id=684, icon="esoui/art/treeicons/tutorial_idexicon_wrothgar_up.dds" },
-	murkmire = { id=726, icon="esoui/art/treeicons/tutorial_idexicon_murkmire_up.dds" },
-	hewsbane = { id=816, icon="esoui/art/treeicons/tutorial_idexicon_thievesguild_up.dds" },
-	goldcoast = { id=823, icon="esoui/art/treeicons/tutorial_idexicon_darkbrotherhood_up.dds" },
-	vvardenfell = { id=849, icon="esoui/art/treeicons/tutorial_idexicon_morrowind_up.dds" },
-	craglorn = { id=888, icon="/esoui/art/treeicons/antiquities_tabicon_craglorn_up.dds" },
-	clockwork = { id=980, icon="esoui/art/treeicons/tutorial_idexicon_cwc_up.dds" },
-	brassfort = { id=981, icon="esoui/art/treeicons/tutorial_idexicon_cwc_up.dds" },
-	summerset = { id=1011, icon="/esoui/art/icons/store_psijic_upgrade.dds" },
-	artaeum = { id=1027, icon="/esoui/art/icons/store_psijic_upgrade.dds" },
-	elsweyr_north = { id=1086, icon="esoui/art/treeicons/tutorial_idexicon_elsweyr_up.dds" },
-	elsweyr_south = { id=1133, icon="esoui/art/treeicons/tutorial_idexicon_dragonguard_up.dds" },
-	greymoor = { id=1160, icon="esoui/art/treeicons/tutorial_indexicon_greymoor_up.dds" },
-	markarth = { id=1207, icon="esoui/art/treeicons/tutorial_indexicon_markarth_up.dds" },
-	blackreach_arkthzand_cavern = { id=1208, icon="esoui/art/treeicons/tutorial_indexicon_markarth_up.dds" },
-	blackreach_greymoor_caverns = { id=1161, icon="esoui/art/treeicons/tutorial_indexicon_greymoor_up.dds" },
-	blackwood = { id=1261, icon="/esoui/art/icons/heraldrycrests_misc_tree_01.dds" },
-	deadlands = { id=1286, icon="esoui/art/treeicons/tutorial_idexicon_deadlands_up.dds" },
-	highisle = { id=1318, icon="/esoui/art/treeicons/store_indexicon_vanitypets_up.dds" },
-	galen_yffelon = { id=1383, icon="esoui/art/treeicons/tutorial_idexicon_firesong_up.dds" },
-	apocrypha = { id=1413, icon="esoui/art/icons/heraldrycrests_daedra_hermaeusmora_01.dds" },
-	telvanni_peninsula = { id=1414, icon="esoui/art/icons/heraldrycrests_daedra_hermaeusmora_01.dds" },
-	west_weald = { id=1443, icon="/esoui/art/treeicons/tutorial_indexicon_scribing_up.dds" },
-	solstice = { id=1502, icon="/esoui/art/icons/u46_coin_wormcult.dds" },
+--Chapter to motif book order, matches achievement
+local chapterOrder = {
+	[ITEM_STYLE_CHAPTER_AXES]=1,
+	[ITEM_STYLE_CHAPTER_BELTS]=2,
+	[ITEM_STYLE_CHAPTER_BOOTS]=3,
+	[ITEM_STYLE_CHAPTER_BOWS]=4,
+	[ITEM_STYLE_CHAPTER_CHESTS]=5,
+	[ITEM_STYLE_CHAPTER_DAGGERS]=6,
+	[ITEM_STYLE_CHAPTER_GLOVES]=7,
+	[ITEM_STYLE_CHAPTER_HELMETS]=8,
+	[ITEM_STYLE_CHAPTER_LEGS]=9,
+	[ITEM_STYLE_CHAPTER_MACES]=10,
+	[ITEM_STYLE_CHAPTER_SHIELDS]=11,
+	[ITEM_STYLE_CHAPTER_SHOULDERS]=12,
+	[ITEM_STYLE_CHAPTER_STAVES]=13,
+	[ITEM_STYLE_CHAPTER_SWORDS]=14
+}
+
+--Base item id of first trait of first item
+local traitLinks = {
+	[CRAFTING_TYPE_BLACKSMITHING] = {
+		orig={[1]=45018,[2]=45025},
+		nirn={[1]=56026,[2]=56038}
+	},
+	[CRAFTING_TYPE_CLOTHIER] = {
+		orig={[1]=45032,[2]=45041},
+		nirn={[1]=56045,[2]=56053}
+	},
+	[CRAFTING_TYPE_WOODWORKING] = {
+		orig={[1]=45040,[2]=45048},
+		nirn={[1]=56033,[2]=56060}
+	},
+	[CRAFTING_TYPE_JEWELRYCRAFTING] = {
+		neck={[1]=54511,[2]=139398},
+		ring={[1]=54507,[2]=139392}
+	}
 }
 
 local researchableTraits = {
@@ -78,6 +69,7 @@ local researchableTraits = {
 }
 
 -- M:New("test name", itemStyleId, achievementId, collectibleId, id, quality, hasChapters) To get the itemStyleId you need the link of an item in that style, to get the collectibleId you need the heavy head, to get the id you need the motif book (or axes motif minus 1)
+-- If adding motifs before they're active in game, instead of commenting them out individually, update the function at the end of the file.
 local ARC = ITEM_FUNCTIONAL_QUALITY_ARCANE
 local LEG = ITEM_FUNCTIONAL_QUALITY_LEGENDARY
 local M = TB_Data_Motif
@@ -218,158 +210,7 @@ local motifs = {
 	[134] = M:New("Tide-Born", 157, 4242, 13183, 212118),
 	[135] = M:New("Black Soul Gem", 158, 4289, 13310, 212424),
 	[136] = M:New("Voskrona Guardian", 159, 4290, 13342, 212441),
-}
-
---Chapter to motif book order, matches achievement
-local chapterOrder = {
-	[ITEM_STYLE_CHAPTER_AXES]=1,
-	[ITEM_STYLE_CHAPTER_BELTS]=2,
-	[ITEM_STYLE_CHAPTER_BOOTS]=3,
-	[ITEM_STYLE_CHAPTER_BOWS]=4,
-	[ITEM_STYLE_CHAPTER_CHESTS]=5,
-	[ITEM_STYLE_CHAPTER_DAGGERS]=6,
-	[ITEM_STYLE_CHAPTER_GLOVES]=7,
-	[ITEM_STYLE_CHAPTER_HELMETS]=8,
-	[ITEM_STYLE_CHAPTER_LEGS]=9,
-	[ITEM_STYLE_CHAPTER_MACES]=10,
-	[ITEM_STYLE_CHAPTER_SHIELDS]=11,
-	[ITEM_STYLE_CHAPTER_SHOULDERS]=12,
-	[ITEM_STYLE_CHAPTER_STAVES]=13,
-	[ITEM_STYLE_CHAPTER_SWORDS]=14
-}
-
---Base item id of first trait of first item
-local traitLinks = {
-	[CRAFTING_TYPE_BLACKSMITHING] = {
-		orig={[1]=45018,[2]=45025},
-		nirn={[1]=56026,[2]=56038}
-	},
-	[CRAFTING_TYPE_CLOTHIER] = {
-		orig={[1]=45032,[2]=45041},
-		nirn={[1]=56045,[2]=56053}
-	},
-	[CRAFTING_TYPE_WOODWORKING] = {
-		orig={[1]=45040,[2]=45048},
-		nirn={[1]=56033,[2]=56060}
-	},
-	[CRAFTING_TYPE_JEWELRYCRAFTING] = {
-		neck={[1]=54511,[2]=139398},
-		ring={[1]=54507,[2]=139392}
-	}
-}
-
-local L = TB_Data_SetLocation
--- id == Go to set location > create > Axe > Link in chat from large tool tip
--- Or data site and find the top listed set axe
-local sets = {
-	[1] = {id=43871, traits=2, locations={[1]={zone=L:New(zones.stonefalls)},[2]={zone=L:New(zones.glenumbra)},[3]={zone=L:New(zones.auridon)}}, test="Ashen Grip"},
-	[2] = {id=46499, traits=2, locations={[1]={zone=L:New(zones.stonefalls)},[2]={zone=L:New(zones.glenumbra)},[3]={zone=L:New(zones.auridon)}}, test="Death's Wind"},
-	[3] = {id=47265, traits=2, locations={[1]={zone=L:New(zones.stonefalls)},[2]={zone=L:New(zones.glenumbra)},[3]={zone=L:New(zones.auridon)}}, test="Night's Silence"},
-
-	[4] = {id=50708, traits=3, locations={[1]={zone=L:New(zones.deshaan)},[2]={zone=L:New(zones.stormhaven)},[3]={zone=L:New(zones.grahtwood)}}, test="Torug's Pact"},
-	[5] = {id=43807, traits=3, locations={[1]={zone=L:New(zones.deshaan)},[2]={zone=L:New(zones.stormhaven)},[3]={zone=L:New(zones.grahtwood)}}, test="Twilight's Embrace"},
-	[6] = {id=43827, traits=3, locations={[1]={zone=L:New(zones.deshaan)},[2]={zone=L:New(zones.stormhaven)},[3]={zone=L:New(zones.grahtwood)}}, test="Armor of the Seducer"},
-
-	[7] = {id=69949, traits=3, locations={[1]={zone=L:New(zones.wrothgar)}}, test="Trial by Fire"},
-	[8] = {id=121585, traits=3, locations={[1]={zone=L:New(zones.vvardenfell)}}, test="Assassin's Guile"},
-
-	[9] = {id=43847, traits=4, locations={[1]={zone=L:New(zones.shadowfen)},[2]={zone=L:New(zones.rivenspire)},[3]={zone=L:New(zones.greenshade)}}, test="Magnus' Gift"},
-	[10] = {id=43995, traits=4, locations={[1]={zone=L:New(zones.shadowfen)},[2]={zone=L:New(zones.rivenspire)},[3]={zone=L:New(zones.greenshade)}}, test="Hist Bark"},
-	[11] = {id=43819, traits=4, locations={[1]={zone=L:New(zones.shadowfen)},[2]={zone=L:New(zones.rivenspire)},[3]={zone=L:New(zones.greenshade)}}, test="Whitestrake's Retribution"},
-
-	[12] = {id=43831, traits=5, locations={[1]={zone=L:New(zones.eastmarch)},[2]={zone=L:New(zones.alikrdesert)},[3]={zone=L:New(zones.malabaltor)}}, test="Vampire's Kiss"},
-	[13] = {id=44013, traits=5, locations={[1]={zone=L:New(zones.eastmarch)},[2]={zone=L:New(zones.alikrdesert)},[3]={zone=L:New(zones.malabaltor)}}, test="Song of Lamae"},
-	[14] = {id=44019, traits=5, locations={[1]={zone=L:New(zones.eastmarch)},[2]={zone=L:New(zones.alikrdesert)},[3]={zone=L:New(zones.malabaltor)}}, test="Alessia's Bulwark"},
-
-	[15] = {id=60280, traits=5, locations={[1]={zone=L:New(zones.imperialcity)}}, test="Noble's Conquest"},
-	[16] = {id=71795, traits=5, locations={[1]={zone=L:New(zones.hewsbane)}}, test="Tava's Favor"},
-	[17] = {id=75397, traits=5, locations={[1]={zone=L:New(zones.goldcoast)}}, test="Kvatch Gladiator"},
-
-	[18] = {id=43859, traits=6, locations={[1]={zone=L:New(zones.therift)},[2]={zone=L:New(zones.bangkorai)},[3]={zone=L:New(zones.reapersmarch)}}, test="Night Mother's Gaze"},
-	[19] = {id=44001, traits=6, locations={[1]={zone=L:New(zones.therift)},[2]={zone=L:New(zones.bangkorai)},[3]={zone=L:New(zones.reapersmarch)}}, test="Willow's Path"},
-	[20] = {id=44007, traits=6, locations={[1]={zone=L:New(zones.therift)},[2]={zone=L:New(zones.bangkorai)},[3]={zone=L:New(zones.reapersmarch)}}, test="Hunding's Rage"},
-
-	[21] = {id=69606, traits=6, locations={[1]={zone=L:New(zones.wrothgar)}}, test="Law of Julianos"},
-	[22] = {id=122285, traits=6, locations={[1]={zone=L:New(zones.vvardenfell)}}, test="Shacklebreaker"},
-
-	[23] = {id=60618, traits=7, locations={[1]={zone=L:New(zones.imperialcity)}}, test="Redistributor"},
-	[24] = {id=72145, traits=7, locations={[1]={zone=L:New(zones.hewsbane)}}, test="Clever Alchemist"},
-	[25] = {id=75747, traits=7, locations={[1]={zone=L:New(zones.goldcoast)}}, test="Varen's Legacy"},
-
-	[26] = {id=121912, traits=8, locations={[1]={zone=L:New(zones.vvardenfell)}}, test="Daedric Trickery"},
-	[27] = {id=53757, traits=8, locations={[1]={zone=L:New(zones.earthforge)}}, test="Kagrenac's Hope"}, --The Rift > Fighters Guild > The Earth Forge
-	[28] = {id=52995, traits=8, locations={[1]={zone=L:New(zones.earthforge)}}, test="Orgnum's Scales"}, --The Rift > Fighters Guild > The Earth Forge > Pressure Room III
-	[29] = {id=44049, traits=8, locations={[1]={zone=L:New(zones.eyevea)}}, test="Eyes of Mara"}, --Mages Guild > Eyevea
-	[30] = {id=40259, traits=8, locations={[1]={zone=L:New(zones.eyevea)}}, test="Shalidor's Curse"}, --Mages Guild > Eyevea
-	[31] = {id=43965, traits=8, locations={[1]={zone=L:New(zones.coldharbour)}}, test="Oblivion's Foe"},
-	[32] = {id=43971, traits=8, locations={[1]={zone=L:New(zones.coldharbour)}}, test="Spectre's Eye"},
-	[33] = {id=54787, traits=8, locations={[1]={zone=L:New(zones.craglorn)}}, test="Way of the Arena"},
-
-	[34] = {id=58153, traits=9, locations={[1]={zone=L:New(zones.craglorn)}}, test="Twice-Born Star"},
-	[35] = {id=60973, traits=9, locations={[1]={zone=L:New(zones.imperialcity)}}, test="Armor Master"},
-	[36] = {id=70642, traits=9, locations={[1]={zone=L:New(zones.wrothgar)}}, test="Morkuldin"},
-	[37] = {id=72502, traits=9, locations={[1]={zone=L:New(zones.hewsbane)}}, test="Eternal Hunt"},
-	[38] = {id=76120, traits=9, locations={[1]={zone=L:New(zones.goldcoast)}}, test="Pelinal's Wrath"},
-
-	[39] = {id=130370, traits=2, locations={[1]={zone=L:New(zones.clockwork)}}, test="Innate Axiom"},
-	[40] = {id=130720, traits=4, locations={[1]={zone=L:New(zones.brassfort)}}, test="Fortified Brass"},
-	[41] = {id=131070, traits=6, locations={[1]={zone=L:New(zones.clockwork)}}, test="Mechanical Acuity"},
-
-	[42] = {id=135717, traits=3, locations={[1]={zone=L:New(zones.summerset)}}, test="Adept Rider"},
-	[43] = {id=136067, traits=6, locations={[1]={zone=L:New(zones.artaeum)}}, test="Sload's Semblance"},
-	[44] = {id=136417, traits=9, locations={[1]={zone=L:New(zones.summerset)}}, test="Nocturnal's Favor"},
-
-	[45] = {id=143161, traits=2, locations={[1]={zone=L:New(zones.murkmire)}}, test="Naga Shaman"},
-	[46] = {id=143531, traits=4, locations={[1]={zone=L:New(zones.murkmire)}}, test="Might of the Lost Legion"},
-	[47] = {id=142791, traits=7, locations={[1]={zone=L:New(zones.murkmire)}}, test="Grave-Stake Collector"},
-
-	[48] = {id=148688, traits=3, locations={[1]={zone=L:New(zones.elsweyr_north)}}, test="Vastarie's Tutelage"},
-	[49] = {id=148318, traits=5, locations={[1]={zone=L:New(zones.elsweyr_north)}}, test="Senche-raht's Grit"},
-	[50] = {id=147948, traits=8, locations={[1]={zone=L:New(zones.elsweyr_north)}}, test="Coldharbour's Favorite"},
-
-	[51] = {id=155778, traits=3, locations={[1]={zone=L:New(zones.elsweyr_south)}}, test="Ancient Dragonguard"},
-	[52] = {id=155404, traits=3, locations={[1]={zone=L:New(zones.elsweyr_south)}}, test="Daring Corsair"},
-	[53] = {id=156152, traits=9, locations={[1]={zone=L:New(zones.elsweyr_south)}}, test="New Moon Acolyte"},
-
-	[54] = {id=158316, traits=3, locations={[1]={zone=L:New(zones.cyrodiil)}}, test="Critical Riposte"}, --Located in Vlasterus
-	[55] = {id=158690, traits=3, locations={[1]={zone=L:New(zones.cyrodiil)}}, test="Unchained Aggressor"}, --Located in Bruma
-	[56] = {id=159064, traits=3, locations={[1]={zone=L:New(zones.cyrodiil)}}, test="Dauntless Combatant"}, --Located in Cropsford
-
-	[57] = {id=161221, traits=5, locations={[1]={zone=L:New(zones.greymoor)}}, test="Stuhn's Favor"},
-	[58] = {id=161595, traits=7, locations={[1]={zone=L:New(zones.greymoor)}}, test="Dragon's Appetite"},
-	[59] = {id=163057, traits=3, locations={[1]={zone=L:New(zones.blackreach_greymoor_caverns)}}, test="Spell Parasite"},
-
-	[60] = {id=168747, traits=9, locations={[1]={zone=L:New(zones.blackreach_arkthzand_cavern)}}, test="Aetherial Ascension"},
-	[61] = {id=168373, traits=6, locations={[1]={zone=L:New(zones.markarth)}}, test="Legacy of Karth"},
-	[62] = {id=167999, traits=3, locations={[1]={zone=L:New(zones.markarth)}}, test="Red Eagle's Fury"},
-
-	[63] = {id=173203, traits=5, locations={[1]={zone=L:New(zones.blackwood)}}, test="Diamond's Victory"},
-	[64] = {id=172829, traits=7, locations={[1]={zone=L:New(zones.blackwood)}}, test="Heartland Conqueror"},
-	[65] = {id=172455, traits=3, locations={[1]={zone=L:New(zones.blackwood)}}, test="Hist Whisperer"},
-
-	[66] = {id=178806, traits=3, locations={[1]={zone=L:New(zones.deadlands)}}, test="Wretched Vitality"},
-	[67] = {id=179180, traits=7, locations={[1]={zone=L:New(zones.deadlands)}}, test="Deadlands Demolisher"},
-	[68] = {id=179554, traits=5, locations={[1]={zone=L:New(zones.deadlands)}}, test="Iron Flask"},
-	
-	[69] = {id=184771, traits=3, locations={[1]={zone=L:New(zones.highisle)}}, test="Order's Wrath"},
-	[70] = {id=185151, traits=5, locations={[1]={zone=L:New(zones.highisle)}}, test="Serpent's Disdain"},
-	[71] = {id=185531, traits=7, locations={[1]={zone=L:New(zones.highisle)}}, test="Druid's Braid"},
-
-	[72] = {id=191612, traits=3, locations={[1]={zone=L:New(zones.galen_yffelon)}}, test="Old Growth Brewer"},
-	[73] = {id=191992, traits=5, locations={[1]={zone=L:New(zones.galen_yffelon)}}, test="Claw of the Forest Wraith"},
-	[74] = {id=191232, traits=7, locations={[1]={zone=L:New(zones.galen_yffelon)}}, test="Chimera's Rebuke"},
-
-	[75] = {id=194942 , traits=3, locations={[1]={zone=L:New(zones.telvanni_peninsula)}}, test="Telvanni Efficiency"},
-	[76] = {id=194562 , traits=5, locations={[1]={zone=L:New(zones.telvanni_peninsula)}}, test="Shattered Fate"},
-	[77] = {id=195322 , traits=7, locations={[1]={zone=L:New(zones.apocrypha)}}, test="Seeker Synthesis"},
-
-	[78] = {id=205773 , traits=5, locations={[1]={zone=L:New(zones.west_weald)}}, test="Highland Sentinel"},
-	[79] = {id=205393 , traits=3, locations={[1]={zone=L:New(zones.west_weald)}}, test="Tharriker’s Strike"},
-	[80] = {id=206153 , traits=7, locations={[1]={zone=L:New(zones.west_weald)}}, test="Threads of War"},
-
-	[82] = {id=215099 , traits=3, locations={[1]={zone=L:New(zones.solstice)}}, test="Shared Burden"},
-	[81] = {id=215479 , traits=5, locations={[1]={zone=L:New(zones.solstice)}}, test="Tide-Born Wildstalker"},
-	[83] = {id=215859 , traits=7, locations={[1]={zone=L:New(zones.solstice)}}, test="Fellowship's Fortitude"},
+	[137] = M:New("Koldane Cartel", 160, 4491, 14228,223947),
 }
 
 TB_Data = ZO_Object:Subclass()
@@ -378,6 +219,7 @@ function TB_Data:New(...)
 	object:Initialize(...)
 	return object
 end
+
 function TB_Data:GetTraitLinkID(craftingSkillType, researchLineIndex, traitIndex)
 	--Rather than storing 306 unique ids
 	local researchLineSplit = TraitBuddy.ui:GetResearchSplit()
@@ -408,6 +250,7 @@ function TB_Data:GetTraitLinkID(craftingSkillType, researchLineIndex, traitIndex
 	end
 	return id
 end
+
 function TB_Data:GetJewelryTraitLinkID(researchLineIndex, traitIndex)
 	--Rather than storing 18 unique ids
 	local id = 0
@@ -429,19 +272,24 @@ function TB_Data:GetJewelryTraitLinkID(researchLineIndex, traitIndex)
 	end
 	return id
 end
+
 function TB_Data:GetResearchableTraitMaterials()
 	return researchableTraits
 end
+
 function TB_Data:IsResearchableTrait(traitType)
 	if not traitType then return false end
 	return (researchableTraits[traitType] ~= nil)
 end
+
 function TB_Data:GetMotif(index)
 	return motifs[index]
 end
+
 function TB_Data:GetMotifs()
 	return motifs
 end
+
 function TB_Data:GetNumMotifs()
 	local numMotifs = NonContiguousCount(motifs)
 	local numChapters = self:GetNumChapters()
@@ -453,9 +301,11 @@ function TB_Data:GetNumMotifs()
 	end
 	return numMotifs, numChaptersTotal
 end
+
 function TB_Data:GetNumChapters()
 	return NonContiguousCount(chapterOrder)
 end
+
 function TB_Data:GetMotifByItemStyleId(itemStyleId)
 	for order,motif in pairs(motifs) do
 		if motif:ItemStyleId()==itemStyleId then
@@ -464,9 +314,11 @@ function TB_Data:GetMotifByItemStyleId(itemStyleId)
 	end
 	return nil
 end
+
 function TB_Data:GetChapterOrder(chapterIndex)
 	return chapterOrder[chapterIndex] or ITEM_STYLE_CHAPTER_ALL
 end
+
 function TB_Data:GetMotifStyle(itemLink)
 	--Returns: itemStyleId, chapter, motifOrder, chapterOrder
 	local itemId = select(4, ZO_LinkHandler_ParseLink(itemLink))
@@ -486,15 +338,9 @@ function TB_Data:GetMotifStyle(itemLink)
 	end
 	return 0, ITEM_STYLE_CHAPTER_ALL, nil, nil
 end
-function TB_Data:GetSets()
-	return sets
-end
-function TB_Data:GetSet(index)
-	return sets[index]
-end
+
 function TB_Data:TestMotifs()
-	-- Test the motifs for various things /script d(TraitBuddy.data:TestMotifs())
-	-- Store the info in /zgoo TraitBuddy.data > GetMotifs > Issues
+	-- /script d(TraitBuddy.data:TestMotifs())
 	local issues = 0
 	for order,motif in pairs(motifs) do
 		motif:Check()
@@ -507,24 +353,7 @@ function TB_Data:TestMotifs()
 	end
 	d(sf("Motif Test: Issues with %s motif(s).", issues))
 end
-function TB_Data:TestSets()
-	local okay = 0
-	local checkout = {}
-	local STYLE_BRETON = 1
-	for i,set in pairs(sets) do
-		local itemLink = ZO_LinkHandler_CreateLink("",nil,ITEM_LINK_TYPE,set.id,30,1,0,0,0,0,0,0,0,0,0,0,0,0,STYLE_BRETON,0,0,0,10000,0)
-		local _, setName, _, _, _, _ = GetItemLinkSetInfo(itemLink, false)
-		if setName == set.test then
-			okay = okay + 1
-		else
-			checkout[#checkout+1] = {name = setName, test = set.test}
-		end
-	end
-	d(sf("Sets Test: %s/%s sets are okay", okay, #sets))
-	for i,set in pairs(checkout) do
-		d(sf("Check set %s/%s", set.name, set.test))
-	end
-end
+
 function TB_Data:TestMotifsDump()
 	for itemStyleIndex = 1, GetNumValidItemStyles() do
 		local itemStyleId = GetValidItemStyleId(itemStyleIndex)
@@ -536,6 +365,7 @@ function TB_Data:TestMotifsDump()
 		end
 	end
 end
+
 function TB_Data:TestMotifsMissing()
 	d("Checking for missing motifs...")
 	local lookat = 0
@@ -555,6 +385,7 @@ function TB_Data:TestMotifsMissing()
 	end
 	d(sf("Done! %s to look at", lookat))
 end
+
 function TB_Data:TestLoreBooks()
 	-- /script d(TraitBuddy.data:TestLoreBooks())
 	local order = self:GetChapterOrder(ITEM_STYLE_CHAPTER_AXES)
@@ -566,18 +397,7 @@ function TB_Data:TestLoreBooks()
 	local title, icon, known, bookId = GetLoreBookInfo(categoryIndex, collectionIndex, order) -- Dwemer axe |H1:book:2857|h|h
 	d(sf("title:%s known:%s bookId:%s", title, tostring(known), bookId))
 end
-function TB_Data:TestLocation()
-	for mapIndex = 1, GetNumMaps() do
-		local name, mapType, mapContentType, zoneId, description = GetMapInfo(mapIndex)
-		d(sf("%s MapType %s Content Type %s ZoneId %s", name, mapType, mapContentType, zoneId))
-	end
 
-	local zoneIndex = GetCurrentMapZoneIndex()
-	local zoneId = GetZoneId(zoneIndex)
-	d("Current zone:")
-	d(sf("By index %s index:%s", GetZoneNameByIndex(zoneIndex), zoneIndex))
-	d(sf("By Id %s id:%s", GetZoneNameById(zoneId), zoneId))
-end
 function TB_Data:TestPatterns()
 	d("TraitBuddy DEBUG: TestPatterns()")
 	--[[
@@ -610,6 +430,7 @@ function TB_Data:TestPatterns()
 		d(sf("Pattern %s - %s - stack %s", patternIndex, patternName, stack))
 	end
 end
+
 function TB_Data:Initialize_Motifs()
 	for itemStyleIndex = 1, GetNumValidItemStyles() do
 		local itemStyleId = GetValidItemStyleId(itemStyleIndex)
@@ -629,31 +450,23 @@ function TB_Data:Initialize_Motifs()
 		motif:SetOrder(order)
 	end
 end
-function TB_Data:Initialize_Sets()
-	local STYLE_BRETON = 1
-	for i,set in pairs(sets) do
-		local itemLink = ZO_LinkHandler_CreateLink("",nil,ITEM_LINK_TYPE,set.id,30,1,0,0,0,0,0,0,0,0,0,0,0,0,STYLE_BRETON,0,0,0,10000,0)
-		local _, setName, _, _, _, _ = GetItemLinkSetInfo(itemLink, false)
-		set.name = sf("%s", setName)
-	end
-end
+
 function TB_Data:Initialize()
 	self:Initialize_Motifs()
-	if GetAPIVersion() < 100033 then
+	if GetAPIVersion() < 101050 then
 		--Remove content until it is active
-		motifs[94] = nil
-		motifs[96] = nil
-		sets[60] = nil
-		sets[61] = nil
-		sets[62] = nil
+		motifs[137] = nil
+		motifs[138] = nil
+--		sets[60] = nil
+
 	end
 	-- check if these motifs exist
-	if not motifs[120]:MaterialId() then
-		motifs[120] = nil
+	if not motifs[130]:MaterialId() then
+		motifs[130] = nil
 	end
-	if not motifs[119]:MaterialId() then
-		motifs[119] = nil
+	if not motifs[129]:MaterialId() then
+		motifs[129] = nil
 	end
 
-	self:Initialize_Sets()
+--	self:Initialize_Sets()
 end
