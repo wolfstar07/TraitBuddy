@@ -2,13 +2,20 @@
 ## Description: Manage and keep track of what crafting research traits all your characters know.
 ## Author: Weolo, WolfStar07
 ## SavedVariables: TraitBuddySettings
-## Version: 9.10
+## Version: 9.11
 ## AddOnVersion: 141
-## APIVersion: 101048 101049
-## DependsOn: LibAddonMenu-2.0>=41
-## OptionalDependsOn: LibLazyCrafting 
+## APIVersion: 101050 101049
+## DependsOn: LibAddonMenu-2.0>=41 LibCharacterKnowledge>=300040 LibSets>=9000
+## OptionalDependsOn: LibLazyCrafting
 lang/$(language).lua
 
+; Data layer - load these FIRST
+data/setLocation.lua
+data/motif.lua
+data/data.lua
+data/setData.lua
+
+; UI files
 ui/updatelater.lua
 ui/base.xml
 ui/base.lua
@@ -28,8 +35,13 @@ ui/inventoryInsight.lua
 ui/sets.xml
 ui/sets.lua
 ui/crafting.lua
-data/setLocation.lua
-data/motif.lua
-data/data.lua
+
+; Main addon file - loads LAST
 TraitBuddy.lua
 Bindings.xml
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
