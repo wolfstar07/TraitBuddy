@@ -37,6 +37,7 @@ function TB_Data_SetLocation:New(zone)
 	o.alliance = GetAlliance(o.zoneId)
 	return o
 end
+
 function TB_Data_SetLocation:GetFullname()
 	local parentZoneId = GetParentZoneId(self.zoneId)
 	if parentZoneId and parentZoneId ~= self.zoneId then
@@ -45,6 +46,7 @@ function TB_Data_SetLocation:GetFullname()
 		return GetZoneNameById(self.zoneId)
 	end
 end
+
 function TB_Data_SetLocation:GetIcon()
 	if self.alliance == ALLIANCE_NONE then
 		return self.icon
@@ -52,6 +54,7 @@ function TB_Data_SetLocation:GetIcon()
 		return GetAllianceSymbolIcon(self.alliance)
 	end
 end
+
 function TB_Data_SetLocation:GetFormattedText()
 	local icon = self:GetIcon()
 	if icon then
