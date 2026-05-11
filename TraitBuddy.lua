@@ -16,6 +16,8 @@ local GAMEPAD_STYLE_2 = {
 	customSpacing = 15
 	}
 local doneMessages = {}
+local LCK = LibCharacterKnowledge
+
 local function IsBlacksmithWeapon(weaponType)
 	return weaponType == WEAPONTYPE_AXE
 		or weaponType == WEAPONTYPE_HAMMER
@@ -25,6 +27,7 @@ local function IsBlacksmithWeapon(weaponType)
 		or weaponType == WEAPONTYPE_TWO_HANDED_SWORD
 		or weaponType == WEAPONTYPE_DAGGER
 end
+
 local function IsWoodworkingWeapon(weaponType)
 	return weaponType == WEAPONTYPE_BOW
 		or weaponType == WEAPONTYPE_FIRE_STAFF
@@ -33,6 +36,7 @@ local function IsWoodworkingWeapon(weaponType)
 		or weaponType == WEAPONTYPE_HEALING_STAFF
 		or weaponType == WEAPONTYPE_SHIELD
 end
+
 local function GetShow_CraftingSkillType(character, craftingSkillType)
 	if craftingSkillType == CRAFTING_TYPE_BLACKSMITHING then
 		return character.show.bs
@@ -45,6 +49,7 @@ local function GetShow_CraftingSkillType(character, craftingSkillType)
 	end
 	return false
 end
+
 local function DisplayItemLinkTooltip(control, itemLink, GamePadMode)
 	local itemType = GetItemLinkItemType(itemLink)
 	if itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
@@ -115,6 +120,7 @@ local function DisplayItemLinkTooltip(control, itemLink, GamePadMode)
 		end
 	end
 end
+
 local function HookBagTooltip()
 	--Inventory, Bank, Guild bank, Guild store sell
 	if TraitBuddy.settings.tooltip.show.bag then
@@ -141,6 +147,7 @@ local function HookBagTooltip()
 		end
 	end
 end
+
 local function HookLootTooltip()
 	if TraitBuddy.settings.tooltip.show.loot then
 		--Non gamepad hook
@@ -161,6 +168,7 @@ local function HookLootTooltip()
 		end
 	end
 end
+
 local function HookMailTooltip()
 	if TraitBuddy.settings.tooltip.show.mail then
 		--Non gamepad hook
@@ -181,6 +189,7 @@ local function HookMailTooltip()
 		end
 	end
 end
+
 local function HookBuybackTooltip()
 	if TraitBuddy.settings.tooltip.show.buyback then
 		--Non gamepad hook
@@ -198,6 +207,7 @@ local function HookBuybackTooltip()
 		end
 	end
 end
+
 local function HookTradeTooltip()
 	if TraitBuddy.settings.tooltip.show.trade then
 		--Non gamepad hook
@@ -223,6 +233,7 @@ local function HookTradeTooltip()
 		end
 	end
 end
+
 local function HookTradingHouseTooltip()
 	--Guild store search
 	if TraitBuddy.settings.tooltip.show.tradingHouse then
@@ -253,6 +264,7 @@ local function HookTradingHouseTooltip()
 		end
 	end
 end
+
 local function HookChatLinkTooltip()
 	if TraitBuddy.settings.tooltip.show.chat then
 		local ChatLinkTooltip = PopupTooltip.SetLink
@@ -262,6 +274,7 @@ local function HookChatLinkTooltip()
 		end
 	end
 end
+
 local function HookQuestRewardTooltip()
 	if TraitBuddy.settings.tooltip.show.quest then
 		local QuestRewardTooltip = ItemTooltip.SetQuestReward
@@ -271,6 +284,7 @@ local function HookQuestRewardTooltip()
 		end
 	end
 end
+
 local function HookCraftingTooltip()
 	if TraitBuddy.settings.tooltip.show.crafting then
 		--Non gamepad hook
@@ -289,6 +303,7 @@ local function HookCraftingTooltip()
 		end
 	end
 end
+
 local function HookWornItemsTooltip()
 	if TraitBuddy.settings.tooltip.show.worn then
 		local WornItemTooltip = ItemTooltip.SetWornItem
@@ -308,6 +323,7 @@ function TB_Object:New(...)
 	object:Initialize(...)
 	return object
 end
+
 function TB_Object:Initialize()
 	self.ADDON_NAME = "TraitBuddy"
 	self.ADDON_VERSION = "9.6"
@@ -328,12 +344,44 @@ function TB_Object:Initialize()
 		[CRAFTING_TYPE_JEWELRYCRAFTING] = 0
 	}
 end
+
 function TB_Object:OnPlayerActivated()
 	if self.player_activated then return end	--Only the first time
 	self.player_activated = true
 	EVENT_MANAGER:UnregisterForEvent(self.ADDON_NAME, EVENT_PLAYER_ACTIVATED)
 
-	TraitBuddy.data = TB_Data:New()
+	-- Initialize Data first, before creating the proxy
+	TraitBuddy.Data = TB_Data:New()
+	TraitBuddy.Data:Initialize()  -- Call Initialize immediately
+	
+	TraitBuddy.setData = TB_setData
+	TraitBuddy.setData:Initialize()
+	
+	TraitBuddy.Libraries = TraitBuddy.Libraries or {}
+	if TraitBuddy.Libraries.Initialize then
+		TraitBuddy.Libraries:Initialize()
+	end
+	
+	-- Create proxy AFTER Data is initialized
+	local proxy = {}
+	setmetatable(proxy, {
+		__index = function(t, key)
+			if TraitBuddy.setData[key] then
+				return function(self, ...)
+					return TraitBuddy.setData[key](TraitBuddy.setData, ...)
+				end
+			end
+			if TraitBuddy.Data[key] then
+				return function(self, ...)
+					return TraitBuddy.Data[key](TraitBuddy.Data, ...)
+				end
+			end
+			return nil
+		end
+	})
+	TraitBuddy.data = proxy
+
+	-- Create UI after data is ready
 	TraitBuddy.ui = TB_UI:New(TB)
 	
 	EVENT_MANAGER:RegisterForEvent(self.ADDON_NAME, EVENT_NON_COMBAT_BONUS_CHANGED, function(_, ...) self:OnNonCombatBonusChanged(...) end)
@@ -368,6 +416,7 @@ function TB_Object:OnPlayerActivated()
 	zo_callLater(function() self.ui:Refresh() end, 20000)
 	zo_callLater(function() self.ui:Refresh() end, 30000)
 end
+
 function TB_Object:StructureAndFix()
 	--Fix any data bugs or add new patch features on all characters. Also sets up structures for new characters
 	--The research and motifs hash tables will have been created from DefaultSettings()
@@ -437,7 +486,6 @@ function TB_Object:StructureAndFix()
 				end
 			end
 		end
-
 		c.motifs = c.motifs or {}
 		if c.motifs[38] == nil then --v4.2 Housing moved Draugr to 38
 			c.motifs[38] = c.motifs[37]
@@ -446,11 +494,11 @@ function TB_Object:StructureAndFix()
 			c.motifs[79] = c.motifs[53.1]
 			c.motifs[53.1] = nil
 		end
-		local numChapters = self.data:GetNumChapters()
+		local numChapters = TraitBuddy.Data:GetNumChapters()
 		for itemStyleIndex = 1, GetNumValidItemStyles() do
 			local itemStyleId = GetValidItemStyleId(itemStyleIndex)
 			if itemStyleId > 0 then
-				local motif = self.data:GetMotifByItemStyleId(itemStyleId)
+				local motif = TraitBuddy.data:GetMotifByItemStyleId(itemStyleId)
 				if motif then
 					local order = motif:Order()
 					if motif:HasChapters() then
@@ -471,26 +519,140 @@ function TB_Object:StructureAndFix()
 		end
 	end
 end
-function TB_Object:UpdateMotifs()
-	local c = self:GetCharacter(self.characterId)
-	local numChapters = self.data:GetNumChapters()
-	for itemStyleIndex = 1, GetNumValidItemStyles() do
-		local itemStyleId = GetValidItemStyleId(itemStyleIndex)
-		if itemStyleId > 0 then
-			local motif = self.data:GetMotifByItemStyleId(itemStyleId)
-			if motif then
-				local order = motif:Order()
-				if motif:HasChapters() then
-					for chapter = 1, numChapters do
-						c.motifs[order][chapter] = motif:IsLoreBookChapterKnown(chapter)
-					end
-				else
-					c.motifs[order] = IsSmithingStyleKnown(itemStyleId, 1)
-				end
-			end
+
+function TB_Object:GetMotifKnowledgeForCharacter(characterId, itemStyleId, chapter)
+	local motif = TraitBuddy.data:GetMotifByItemStyleId(itemStyleId)
+	if not motif then
+		return false
+	end
+	
+	local hasChapters = motif:HasChapters()
+	
+	-- For the CURRENT character, we can use direct game API calls
+	if characterId == self.characterId then
+		if hasChapters then
+			-- Chaptered motifs - use lore book tracking
+			return motif:IsLoreBookChapterKnown(chapter)
+		else
+			-- Non-chaptered motifs (alliance motifs 1-9) - use smithing style
+			-- This checks if you can CRAFT in this style, which means you learned it
+			return IsSmithingStyleKnown(itemStyleId, 1)
 		end
 	end
+	
+	-- For OTHER characters, we MUST use LCK
+	if not LCK then
+		-- No LCK available - can't check other characters
+		return false
+	end
+	
+	local server = GetWorldName()
+	local charIdStr = tostring(characterId)
+	
+	-- For non-chaptered motifs, we need to check chapter 1 specifically
+	-- because LCK stores them as "styleId + chapter 1 known" 
+	local chapterToCheck = hasChapters and chapter or 1
+	
+	-- Get knowledge status from LCK
+	local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, chapterToCheck, server, charIdStr)
+	
+	-- LCK returns one of these values:
+	-- LCK.KNOWLEDGE_KNOWN = 1 (known)
+	-- LCK.KNOWLEDGE_UNKNOWN = 2 (not known)
+	-- LCK.KNOWLEDGE_NODATA = 0 (no data for this character)
+	-- LCK.KNOWLEDGE_INVALID = -1 (invalid item/motif)
+	
+	if knowledge == LCK.KNOWLEDGE_KNOWN then
+		return true
+	elseif knowledge == LCK.KNOWLEDGE_UNKNOWN then
+		return false
+	else
+		-- NODATA or INVALID - we don't know, so assume not known
+		return false
+	end
 end
+
+function TB_Object:UpdateMotifs()
+	-- Motif knowledge is now queried from LCK on-demand
+	-- This function is kept for compatibility but does nothing
+	-- The UI queries GetMotifKnowledgeForCharacter() directly when needed
+	
+	-- Optional: Trigger UI refresh to update motif display
+	if self.ui and self.ui.motifs then
+		zo_callLater(function()
+			if self.ui.motifs.Refresh then
+				self.ui.motifs:Refresh()
+			end
+		end, 100)
+	end
+end
+
+function TB_Object:UpdateAllCharacterMotifsFromLCK()
+	if not LCK then
+		d("TraitBuddy: LibCharacterKnowledge not available - install LCK to track other characters")
+		return
+	end
+	
+	local server = GetWorldName()
+	local lckCharacters = LCK.GetCharacterList(server)
+	local numChapters = TraitBuddy.Data:GetNumChapters()
+	
+	d(sf("TraitBuddy: Syncing motif knowledge for %d characters from LCK...", #lckCharacters))
+	
+	local syncedCount = 0
+	for _, lckChar in ipairs(lckCharacters) do
+		-- Find matching TraitBuddy character by ID
+		local tbChar = nil
+		local tbCharId = nil
+		for _, id in ipairs(self:GetCharacters(false)) do
+			if tostring(id) == lckChar.id then
+				tbChar = self:GetCharacter(id)
+				tbCharId = id
+				break
+			end
+		end
+		
+		if tbChar then
+			-- Update all motifs for this character
+			for itemStyleIndex = 1, GetNumValidItemStyles() do
+				local itemStyleId = GetValidItemStyleId(itemStyleIndex)
+				if itemStyleId > 0 then
+					local motif = TraitBuddy.data:GetMotifByItemStyleId(itemStyleId)
+					if motif then
+						local order = motif:Order()
+						
+						if motif:HasChapters() then
+							-- Chaptered motifs
+							tbChar.motifs[order] = tbChar.motifs[order] or {}
+							for chapter = 1, numChapters do
+								local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, chapter, server, lckChar.id)
+								if knowledge == LCK.KNOWLEDGE_KNOWN then
+									tbChar.motifs[order][chapter] = true
+								elseif knowledge == LCK.KNOWLEDGE_UNKNOWN then
+									tbChar.motifs[order][chapter] = false
+								end
+								-- Leave existing value if NODATA or INVALID
+							end
+						else
+							-- Non-chaptered motifs - check chapter 1
+							local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, 1, server, lckChar.id)
+							if knowledge == LCK.KNOWLEDGE_KNOWN then
+								tbChar.motifs[order] = true
+							elseif knowledge == LCK.KNOWLEDGE_UNKNOWN then
+								tbChar.motifs[order] = false
+							end
+							-- Leave existing value if NODATA or INVALID
+						end
+					end
+				end
+			end
+			syncedCount = syncedCount + 1
+		end
+	end
+	
+	d(sf("TraitBuddy: Synced %d characters from LCK", syncedCount))
+end
+
 function TB_Object:GetResearchShowName(craftingSkillType)
 	if craftingSkillType==CRAFTING_TYPE_BLACKSMITHING then
 		return "bs"
@@ -503,6 +665,7 @@ function TB_Object:GetResearchShowName(craftingSkillType)
 	end
 	return nil
 end
+
 function TB_Object:CheckESOPlus()
 	if self.settings.esoplusCheck then
 		if self.settings.esoplus ~= IsESOPlusSubscriber() then
@@ -515,6 +678,7 @@ function TB_Object:CheckESOPlus()
 	end
 	self.settings.esoplus = IsESOPlusSubscriber()
 end
+
 function TB_Object:GetCharacters(sorted)
 	if sorted and sorted == true then
 		return self.soc
@@ -522,6 +686,7 @@ function TB_Object:GetCharacters(sorted)
 		return self.settings.characters
 	end
 end
+
 function TB_Object:SortCharacters()
 	--Sort the characters by name and return their IDs in an ordered table
 	local t = {} --Numeric sorted hash table id+name
@@ -535,17 +700,21 @@ function TB_Object:SortCharacters()
 	end
 	self.soc = s
 end
+
 function TB_Object:GetCharacter(id)
 	return self.settings.characters[id]
 end
+
 function TB_Object:GetCraftingSkillTypes()
 	return {CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE_CLOTHIER, CRAFTING_TYPE_WOODWORKING, CRAFTING_TYPE_JEWELRYCRAFTING}
 end
+
 function TB_Object:IsResearchableTrait(traitType)
 	local category = GetItemTraitTypeCategory(traitType)
 	if (category~=ITEM_TRAIT_TYPE_CATEGORY_ARMOR and category~=ITEM_TRAIT_TYPE_CATEGORY_WEAPON and category~=ITEM_TRAIT_TYPE_CATEGORY_JEWELRY) then return false end
 	return self.data:IsResearchableTrait(traitType)
 end
+
 function TB_Object:LinkToCraftingSkillType(itemLink)
 	local itemType = GetItemLinkItemType(itemLink)
 	if itemType==ITEMTYPE_ARMOR then
@@ -570,6 +739,7 @@ function TB_Object:LinkToCraftingSkillType(itemLink)
 	end
 	return nil
 end
+
 function TB_Object:FindTraitIndex(craftingSkillType, researchLineIndex, traitType)
 	--Trying not to hard code the trait type indexes
 	local _, _, numTraits, _ = GetSmithingResearchLineInfo(craftingSkillType, researchLineIndex)
@@ -581,6 +751,7 @@ function TB_Object:FindTraitIndex(craftingSkillType, researchLineIndex, traitTyp
 	end
 	return ITEM_TRAIT_TYPE_NONE
 end
+
 function TB_Object:CalcMaxNumTraits()
 	--Remember how many traits are possible
 	for key,craftingSkillType in pairs(self:GetCraftingSkillTypes()) do
@@ -592,9 +763,11 @@ function TB_Object:CalcMaxNumTraits()
 		self.maxNumTraits[craftingSkillType] = total
 	end
 end
+
 function TB_Object:GetMaxNumTraits(craftingSkillType)
 	return self.maxNumTraits[craftingSkillType]
 end
+
 function TB_Object:IsTraitBeingResearched(character, craftingSkillType, researchLineIndex, traitIndex)
 	if character and craftingSkillType and researchLineIndex and traitIndex then
 		if craftingSkillType>0 and researchLineIndex>0 and traitIndex>0 then
@@ -603,6 +776,7 @@ function TB_Object:IsTraitBeingResearched(character, craftingSkillType, research
 	end
 	return false
 end
+
 function TB_Object:IsTraitKnown(character, craftingSkillType, researchLineIndex, traitIndex)
 	if character and craftingSkillType and researchLineIndex and traitIndex then
 		if craftingSkillType>0 and researchLineIndex>0 and traitIndex>0 then
@@ -613,6 +787,7 @@ function TB_Object:IsTraitKnown(character, craftingSkillType, researchLineIndex,
 	end	
 	return false
 end
+
 function TB_Object:DefaultSettings()
 	local defaults = {
 		tooltip = {
@@ -717,6 +892,7 @@ function TB_Object:DefaultSettings()
 	}
 	return defaults
 end
+
 function TB_Object:DeleteCharacter(id)
 	if not id then return end
 	self.settings.characters[id] = nil
@@ -730,6 +906,7 @@ function TB_Object:DeleteCharacter(id)
 	self.ui.research:UpdateUI()
 	self.ui.settings:ClearCharacter(id)
 end
+
 function TB_Object:TidyCharacters()
 	--Delete the old character data plus tidy the UI
 	if self.settings.tidy then
@@ -746,6 +923,7 @@ function TB_Object:TidyCharacters()
 		end
 	end
 end
+
 function TB_Object:UpdateResearch()
 	--Update the saved research data for this character
 	local c = self:GetCharacter(self.characterId)
@@ -788,6 +966,7 @@ function TB_Object:UpdateResearch()
 		end
 	end
 end
+
 function TB_Object:UpdateResearching()
 	--Update any traits which were researching that have now finished
 	local updateUI = false
@@ -844,6 +1023,7 @@ function TB_Object:UpdateResearching()
 		zo_callLater(function() self:UpdateResearching() end, ms)
 	end
 end
+
 function TB_Object:ItemToResearchLineIndex(itemType, armorType, weaponType, equipType)
 	--Figure out which research index this item is. Hope to find a function to do this
 	if itemType == ITEMTYPE_ARMOR then
@@ -931,6 +1111,7 @@ function TB_Object:ItemToResearchLineIndex(itemType, armorType, weaponType, equi
 	end
 	return nil
 end
+
 function TB_Object:GetWhoKnows(craftingSkillType, researchLineIndex, traitIndex, forTooltip)
 	--Figure out who knows the trait, Returns sorted tables of character names
 	local know = {}
@@ -958,6 +1139,7 @@ function TB_Object:GetWhoKnows(craftingSkillType, researchLineIndex, traitIndex,
 	end
 	return know, researching, dontKnow
 end
+
 function TB_Object:BuildTooltipTitle(control, title, GamePadMode)
 	if GamePadMode then
 		control:AddLine(self.ADDON_NAME, {fontSize=27, customSpacing=15}, control:GetStyle("bodyHeader"))
@@ -966,6 +1148,7 @@ function TB_Object:BuildTooltipTitle(control, title, GamePadMode)
 		control:AddLine(title, "ZoFontGameBold", 1,1,1, LEFT, MODIFY_TEXT_TYPE_UPPERCASE, TEXT_ALIGN_CENTER, true)
 	end
 end
+
 function TB_Object:BuildTooltip(control, know, researching, canResearch, GamePadMode)
 	local r,g,b = ZO_NORMAL_TEXT:UnpackRGB()
 	local tooltip = self.settings.tooltip
@@ -1006,6 +1189,7 @@ control:AddLine(sf("|c%02X%02X%02X%d|r: %s", rr, gg, bb, #canResearch, ZO_Genera
 		end
 	end
 end
+
 function TB_Object:GetGamepadStyle(number)
 	if number == 1 then
 		return GAMEPAD_STYLE_1
@@ -1013,6 +1197,7 @@ function TB_Object:GetGamepadStyle(number)
 		return GAMEPAD_STYLE_2
 	end
 end
+
 function TB_Object:OnResearchStarted(craftingSkillType, researchLineIndex, traitIndex)
 	local durationSecs, timeRemainingSecs = GetSmithingResearchLineTraitTimes(craftingSkillType, researchLineIndex, traitIndex)
 	--durationSecs, timeRemainingSecs: both = the same time
@@ -1021,11 +1206,13 @@ function TB_Object:OnResearchStarted(craftingSkillType, researchLineIndex, trait
 	self.ui:UpdateUI(craftingSkillType)
 	self:UpdateResearching()
 end
+
 function TB_Object:OnResearchCanceled(craftingSkillType, researchLineIndex, traitIndex)
 	local c = self:GetCharacter(self.characterId)
 	c.research[craftingSkillType][researchLineIndex][traitIndex] = nil
 	c.research[craftingSkillType][researchLineIndex][traitIndex] = false
 end
+
 function TB_Object:OnResearchCompleted(craftingSkillType, researchLineIndex, traitIndex)
 	if not self.ui:IsCreated() then
 		self.ui.updatelater:ResearchCompleted(craftingSkillType, researchLineIndex, traitIndex)
@@ -1036,6 +1223,7 @@ function TB_Object:OnResearchCompleted(craftingSkillType, researchLineIndex, tra
 	self.ui:UpdateUI(craftingSkillType)
 	self:UpdateResearching()
 end
+
 function TB_Object:OnResearchTimesUpdated()
 	--Research scroll, OnResearchCompleted fires off if the research finishes
 	local c = self:GetCharacter(self.characterId)
@@ -1057,6 +1245,7 @@ function TB_Object:OnResearchTimesUpdated()
 	end
 	self.ui.research:UpdateUI()
 end
+
 function TB_Object:ResearchCompleted(craftingSkillType, researchLineIndex, traitIndex)
 	--Update the data
 	local c = self:GetCharacter(self.characterId)
@@ -1082,6 +1271,7 @@ function TB_Object:ResearchCompleted(craftingSkillType, researchLineIndex, trait
 		end
 	end
 end
+
 function TB_Object:OnNonCombatBonusChanged(nonCombatBonusType)
 	local craftingSkillType = CRAFTING_TYPE_INVALID
 	if nonCombatBonusType==NON_COMBAT_BONUS_BLACKSMITHING_RESEARCH_LEVEL then
@@ -1112,9 +1302,11 @@ function TB_Object:OnNonCombatBonusChanged(nonCombatBonusType)
 		end
 	end
 end
+
 function TB_Object:OnStyleLearned(itemStyleId, chapterIndex)
 	self.ui.motifs:OnStyleLearned(itemStyleId, chapterIndex)
 end
+
 function TB_Object:OnLoaded(addonName)
 	local name = self.ADDON_NAME
 	if addonName ~= name then return end
@@ -1124,6 +1316,162 @@ function TB_Object:OnLoaded(addonName)
 	SLASH_COMMANDS["/tb"] = function(args) self.ui:Toggle() end
 	SLASH_COMMANDS["/traitbuddy"] = function(args) self.ui:Toggle() end
 	
+	SLASH_COMMANDS["/tbchecksets"] = function()
+		d("=== LibSets Integration Check ===")
+		
+		-- Check 1: Is LibSets loaded at all?
+		if not LibSets then
+			d("LibSets is NOT loaded!")
+			d("Possible causes:")
+			d("  1. LibSets is not installed")
+			d("  2. LibSets is disabled in addon list")
+			d("  3. LibSets failed to load (check for errors)")
+			return
+		end
+		d("LibSets table exists")
+		
+		-- Check 2: What functions does LibSets have?
+		d("\nLibSets available functions:")
+		local functionCount = 0
+		for k, v in pairs(LibSets) do
+			if type(v) == "function" then
+				d("  - " .. k)
+				functionCount = functionCount + 1
+				if functionCount > 20 then
+					d("  ... (showing first 20)")
+					break
+				end
+			end
+		end
+		
+		if functionCount == 0 then
+			d("No functions found in LibSets!")
+			d("LibSets may not be initialized yet")
+			return
+		end
+		
+		-- Check 3: Try different possible function names
+		d("\nTrying to call LibSets functions:")
+		
+		-- Try GetNumCraftedSets (your current version)
+		if type(LibSets.GetNumCraftedSets) == "function" then
+			local numSets = LibSets.GetNumCraftedSets()
+			d("GetNumCraftedSets() = " .. tostring(numSets))
+		else
+			d("GetNumCraftedSets is not a function (type: " .. type(LibSets.GetNumCraftedSets) .. ")")
+		end
+		
+		-- Try GetSetInfo (alternative API)
+		if type(LibSets.GetSetInfo) == "function" then
+			d("✓etSetInfo exists")
+		else
+			d("GetSetInfo does not exist")
+		end
+		
+		-- Try GetCraftedSetInfo
+		if type(LibSets.GetCraftedSetInfo) == "function" then
+			local success, result = pcall(function()
+				return LibSets.GetCraftedSetInfo(1)
+			end)
+			if success then
+				d("GetCraftedSetInfo(1) succeeded")
+			else
+				d("GetCraftedSetInfo exists but failed: " .. tostring(result))
+			end
+		else
+			d("GetCraftedSetInfo does not exist")
+		end
+		
+		-- Check 4: Look for version/initialization info
+		if LibSets.version then
+			d("\nLibSets version: " .. tostring(LibSets.version))
+		end
+		
+		if LibSets.name then
+			d("LibSets name: " .. tostring(LibSets.name))
+		end
+		
+		-- Check 5: Test setData
+		d("\nTesting setData:")
+		if TraitBuddy and TraitBuddy.data then
+			local success, sets = pcall(function()
+				return TraitBuddy.data:GetSets()
+			end)
+			
+			if success then
+				d("setData:GetSets() succeeded")
+				d("  Returned " .. #sets .. " sets")
+				if #sets > 0 then
+					d("  First set: " .. tostring(sets[1].name))
+				end
+			else
+				d("setData:GetSets() failed:")
+				d("  " .. tostring(sets))
+			end
+		else
+			d("TraitBuddy.data not available")
+		end
+	end
+
+	d("Registered /tbchecksets command")
+	
+	SLASH_COMMANDS["/tbchecksets2"] = function()
+		d("=== LibSets 0.86 API Test ===")
+		
+		if not LibSets or not LibSets.setInfo then
+			d("LibSets.setInfo not available")
+			return
+		end
+		
+		d("✓ LibSets.setInfo exists")
+		
+		-- Count crafted sets
+		local craftedCount = 0
+		local firstCraftedSet = nil
+		
+		for setId, setInfo in pairs(LibSets.setInfo) do
+			local traitsNeeded = LibSets.GetTraitsNeeded(setId)
+			if traitsNeeded then
+				craftedCount = craftedCount + 1
+				if not firstCraftedSet then
+					local info = LibSets.GetSetInfo(setId, true)
+					firstCraftedSet = {
+						id = setId,
+						name = info and info.setName or "Unknown",
+						traits = traitsNeeded
+					}
+				end
+			end
+		end
+		
+		d(string.format("Found %d crafted sets", craftedCount))
+		if firstCraftedSet then
+			d(string.format("Example: %s (ID:%d, Traits:%d)", 
+				firstCraftedSet.name, firstCraftedSet.id, firstCraftedSet.traits))
+		end
+		
+		-- Test setData
+		local sets = TraitBuddy.data:GetSets()
+		d(string.format("setData returned %d sets", #sets))
+		if #sets > 0 then
+			d(string.format("First set: %s (Traits:%d, Locations:%d)",
+				sets[1].name, sets[1].traits, #(sets[1].locations or {})))
+		end
+	end
+	
+	SLASH_COMMANDS["/tbzonedump"] = function()
+	  local sets = TraitBuddy.data:GetSets()
+	  for i, set in ipairs(sets) do
+		local ids = LibSets.GetWayshrineIds(set.id)
+		if ids and ids[1] then
+		  local zId = LibSets.GetWayshrinesZoneId(ids[1])
+		  if zId then
+			d(set.name..":"..zId..":"..GetZoneNameById(zId))
+		  end
+		end
+	  end
+	end
+
 	local worldName = GetWorldName()
 	local profile = nil
 	local found, findStart, findEnd = zo_plainstrfind(worldName, " ")
@@ -1142,8 +1490,11 @@ function TB_Object:OnLoaded(addonName)
 	EVENT_MANAGER:RegisterForEvent(name, EVENT_SMITHING_TRAIT_RESEARCH_CANCELED, function(_, ...) self:OnResearchCanceled(...) end)
 	EVENT_MANAGER:RegisterForEvent(name, EVENT_SMITHING_TRAIT_RESEARCH_TIMES_UPDATED, function() self:OnResearchTimesUpdated() end)
 	EVENT_MANAGER:RegisterForEvent(name, EVENT_STYLE_LEARNED, function(_, ...) self:OnStyleLearned(...) end)
-	CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", function(panel) self.ui.settings:OnSettingsControlsCreated(panel) end)
-	-- LAM-PanelOpened
+	CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", function(panel)
+		if TraitBuddy.ui and TraitBuddy.ui.settings and TraitBuddy.ui.settings.OnSettingsControlsCreated then
+			TraitBuddy.ui.settings:OnSettingsControlsCreated(panel)
+		end
+	end)
 end
 
 TraitBuddy = TB_Object:New()
