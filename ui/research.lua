@@ -47,12 +47,13 @@ function TB_Research:Hide()
 end
 
 function TB_Research:AddCharacters()
-	--Add characters to the research section
+	--Add characters to the research section (2-column layout)
 	local parent = self.parent:GetNamedChild("ScrollChild")
 	for id,c in pairs(TraitBuddy:GetCharacters()) do
 		local control = CreateControlFromVirtual("$(parent)Character", parent, "TB_ResearchCharacter", id)
 		control:GetNamedChild("Name"):SetText(c.name)
 	end
+	-- Column index is assigned during UpdateUI when visibility is known
 end
 
 local function GetNumTraitsKnown(character, craftingSkillType)
@@ -124,21 +125,41 @@ function TB_Research:UpdateUI()
 		local control = self.parent:GetNamedChild("ScrollChild"):GetNamedChild(sf("Character%s", id))
 		control:SetHidden(not show[id].section)
 	end
-	--Now build up the screen
-	local lastCharacter
+	--Now build up the screen in 2 columns
+	local colCount = 0        -- counts visible characters placed so far
+	local lastLeft = nil      -- bottom anchor for left column
+	local lastRight = nil     -- bottom anchor for right column
 	for k,id in ipairs(TraitBuddy:GetCharacters(true)) do
 		local c = characters[id]
-		
 
-		local bColored = 0 
-
+		local bColored = 0
 
 		if show[id].section then
+			colCount = colCount + 1
+			local isLeftCol = (colCount % 2 == 1)
+
 			local craftHeight = 0
 			local character = self.parent:GetNamedChild("ScrollChild"):GetNamedChild(sf("Character%s", id))
-			if lastCharacter then
-				character:SetAnchor(TOPLEFT, lastCharacter, BOTTOMLEFT, 0, 30)
+
+			-- Place in left or right column
+			character:ClearAnchors()
+			if isLeftCol then
+				if lastLeft then
+					character:SetAnchor(TOPLEFT, lastLeft, BOTTOMLEFT, 0, 30)
+				else
+					character:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
+				end
+				lastLeft = character
+			else
+				if lastRight then
+					character:SetAnchor(TOPLEFT, lastRight, BOTTOMLEFT, 0, 30)
+				else
+					-- First right-column entry: anchor to right half of scroll child
+					character:SetAnchor(TOPLEFT, nil, TOPLEFT, 494, 0)
+				end
+				lastRight = character
 			end
+			
 			for key,craftingSkillType in pairs(craftingSkillTypes) do
 				local craft = character:GetNamedChild(sf("P%d", craftingSkillType))
 				craft:SetHidden(not show[id].research[craftingSkillType])
@@ -210,7 +231,6 @@ function TB_Research:UpdateUI()
 				end
 				craft:SetHeight(craftHeight+37)
 			end
-			lastCharacter = character
 			character:SetHeight(craftHeight+37+24)
 			
 
